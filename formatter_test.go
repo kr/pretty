@@ -19,10 +19,18 @@ type T struct {
 	x, y int
 }
 
+type F int
+
+
+func (f F) Format(s fmt.State, c int) {
+	fmt.Fprintf(s, "F(%d)", int(f))
+}
+
 var long = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 var gosyntax = []test{
 	{1, "1"},
+	{F(5), "F(5)"},
 	{long, `"`+long[:50]+"\" +\n\""+long[50:]+`"`},
 	{
 		LongStructTypeName{
