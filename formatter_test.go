@@ -45,6 +45,17 @@ var gosyntax = []test{
 }`,
 	},
 	{
+		&LongStructTypeName{
+			longFieldName:      &LongStructTypeName{
+			},
+			otherLongFieldName: (*LongStructTypeName)(nil),
+		},
+		`&pretty.LongStructTypeName{
+	longFieldName:      &pretty.LongStructTypeName{},
+	otherLongFieldName: (*pretty.LongStructTypeName)(nil),
+}`,
+	},
+	{
 		[]LongStructTypeName{
 			{nil, nil},
 			{3, 3},

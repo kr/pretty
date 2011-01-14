@@ -94,6 +94,14 @@ func (fo formatter) format(w io.Writer) {
 			fmt.Fprintf(w, "%#v", s[l:h])
 		}
 		return
+	case *reflect.PtrValue:
+		e := v.Elem()
+		if e == nil {
+			fmt.Fprintf(w, "%#v", fo.x)
+		} else {
+			writeByte(w, '&')
+			fmt.Fprintf(w, "%# v", formatter{d: fo.d, x: e.Interface()})
+		}
 	case *reflect.SliceValue:
 		s := fmt.Sprintf("%#v", fo.x)
 		if len(s) < limit {
