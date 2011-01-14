@@ -25,7 +25,16 @@ type formatter struct {
 }
 
 
-func Formatter(x interface{}) fmt.Formatter {
+// Formatter makes a wrapper, f, that will format x as go source with line
+// breaks and tabs. Object f responds to the "%v" formatting verb when both the
+// "#" and " " (space) flags are set, for example:
+//
+//     fmt.Sprintf("%# v", Formatter(x))
+//
+// If one of these two flags is not set, or any other verb is used, f will
+// format x according to the usual rules of package fmt.
+// In particular, if x satisfies fmt.Formatter, then x.Format will be called.
+func Formatter(x interface{}) (f fmt.Formatter) {
 	return formatter{x: x}
 }
 
