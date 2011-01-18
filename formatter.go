@@ -79,6 +79,9 @@ func (fo formatter) format(w io.Writer) {
 		s := v.Get()
 		z := len(s)
 		n := (z + lim - 1) / lim
+		if n < 1 {
+			n = 1 // empty string still produces output
+		}
 		sep := append(spacePlusLFBytes, make([]byte, fo.d)...)
 		for j := 0; j < fo.d; j++ {
 			sep[3+j] = '\t'
