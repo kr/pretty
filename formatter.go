@@ -72,11 +72,11 @@ func (fo formatter) Format(f fmt.State, c int) {
 
 
 func (fo formatter) format(w io.Writer) {
-	value := reflect.NewValue(fo.x)
-	switch v := value.(type) {
-	case *reflect.StringValue:
+	v := reflect.NewValue(fo.x)
+	switch v.Kind() {
+	case reflect.String:
 		lim := limit - 8*fo.d
-		s := v.Get()
+		s := v.String()
 		z := len(s)
 		n := (z + lim - 1) / lim
 		if n < 1 {
@@ -97,30 +97,30 @@ func (fo formatter) format(w io.Writer) {
 			fmt.Fprintf(w, "%#v", s[l:h])
 		}
 		return
-	case *reflect.PtrValue:
+	case reflect.Ptr:
 		e := v.Elem()
-		if e == nil {
+		if !e.IsValid() {
 			fmt.Fprintf(w, "%#v", fo.x)
 		} else {
 			writeByte(w, '&')
 			fmt.Fprintf(w, "%# v", formatter{d: fo.d, x: e.Interface()})
 		}
-	case *reflect.SliceValue:
+	case reflect.Slice:
 		s := fmt.Sprintf("%#v", fo.x)
 		if len(s) < limit {
 			io.WriteString(w, s)
 			return
 		}
 
-		t := v.Type().(*reflect.SliceType)
-		_, keep := t.Elem().(*reflect.InterfaceType)
+		t := v.Type()
+
 		io.WriteString(w, reflect.Typeof(fo.x).String())
 		w.Write(openCurlyLFBytes)
 		for i := 0; i < v.Len(); i++ {
 			for j := 0; j < fo.d+1; j++ {
 				writeByte(w, '\t')
 			}
-			inner := formatter{d: fo.d + 1, x: v.Elem(i).Interface(), omit: !keep}
+			inner := formatter{d: fo.d + 1, x: v.Index(i).Interface(), omit: t.Elem().Kind() != reflect.Interface}
 			fmt.Fprintf(w, "%# v", inner)
 			w.Write(commaLFBytes)
 		}
@@ -128,9 +128,9 @@ func (fo formatter) format(w io.Writer) {
 			writeByte(w, '\t')
 		}
 		writeByte(w, '}')
-	case *reflect.StructValue:
-		t := v.Type().(*reflect.StructType)
-		if reflect.DeepEqual(reflect.MakeZero(t).Interface(), fo.x) {
+	case reflect.Struct:
+		t := v.Type()
+		if reflect.DeepEqual(reflect.Zero(t).Interface(), fo.x) {
 			if !fo.omit {
 				io.WriteString(w, t.String())
 			}
@@ -154,7 +154,7 @@ func (fo formatter) format(w io.Writer) {
 		var max int
 		for i := 0; i < v.NumField(); i++ {
 			if v := t.Field(i); v.Name != "" {
-				if len(v.Name) + 2 > max {
+				if len(v.Name)+2 > max {
 					max = len(v.Name) + 2
 				}
 			}

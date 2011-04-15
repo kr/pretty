@@ -33,11 +33,10 @@ var gosyntax = []test{
 	{"a", `"a"`},
 	{1, "1"},
 	{F(5), "F(5)"},
-	{long, `"`+long[:50]+"\" +\n\""+long[50:]+`"`},
+	{long, `"` + long[:50] + "\" +\n\"" + long[50:] + `"`},
 	{
 		LongStructTypeName{
-			longFieldName:      LongStructTypeName{
-			},
+			longFieldName:      LongStructTypeName{},
 			otherLongFieldName: long,
 		},
 		`pretty.LongStructTypeName{
@@ -48,8 +47,7 @@ var gosyntax = []test{
 	},
 	{
 		&LongStructTypeName{
-			longFieldName:      &LongStructTypeName{
-			},
+			longFieldName:      &LongStructTypeName{},
 			otherLongFieldName: (*LongStructTypeName)(nil),
 		},
 		`&pretty.LongStructTypeName{
