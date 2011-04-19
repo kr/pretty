@@ -1,6 +1,6 @@
 include $(GOROOT)/src/Make.inc
 
-TARG=pretty
+TARG=github.com/kr/pretty.go
 GOFILES=\
 	formatter.go\
 	pretty.go\
