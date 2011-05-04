@@ -72,7 +72,7 @@ func (fo formatter) Format(f fmt.State, c int) {
 
 
 func (fo formatter) format(w io.Writer) {
-	v := reflect.NewValue(fo.x)
+	v := reflect.ValueOf(fo.x)
 	switch v.Kind() {
 	case reflect.String:
 		lim := limit - 8*fo.d
@@ -114,7 +114,7 @@ func (fo formatter) format(w io.Writer) {
 
 		t := v.Type()
 
-		io.WriteString(w, reflect.Typeof(fo.x).String())
+		io.WriteString(w, reflect.TypeOf(fo.x).String())
 		w.Write(openCurlyLFBytes)
 		for i := 0; i < v.Len(); i++ {
 			for j := 0; j < fo.d+1; j++ {
