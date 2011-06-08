@@ -3,6 +3,7 @@ include $(GOROOT)/src/Make.inc
 
 TARG=github.com/kr/pretty.go
 GOFILES=\
+	diff.go\
 	formatter.go\
 	pretty.go\
 
