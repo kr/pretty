@@ -113,11 +113,3 @@ func (d diffWriter) relabel(name string) (d1 diffWriter) {
 	}
 	return d1
 }
-
-
-func fieldLabel(label string, f reflect.StructField) string {
-	if label == "" {
-		return f.Name
-	}
-	return label + "." + f.Name
-}
