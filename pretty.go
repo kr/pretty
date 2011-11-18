@@ -19,36 +19,31 @@ package pretty
 import (
 	"fmt"
 	"io"
-	"os"
 )
-
 
 // Errorf is a convenience wrapper for fmt.Errorf.
 //
 // Calling Errorf(f, x, y) is equivalent to
 // fmt.Errorf(f, Formatter(x), Formatter(y)).
-func Errorf(format string, a ...interface{}) os.Error {
+func Errorf(format string, a ...interface{}) error {
 	return fmt.Errorf(format, wrap(a)...)
 }
-
 
 // Fprintf is a convenience wrapper for fmt.Fprintf.
 //
 // Calling Fprintf(w, f, x, y) is equivalent to
 // fmt.Fprintf(w, f, Formatter(x), Formatter(y)).
-func Fprintf(w io.Writer, format string, a ...interface{}) (n int, error os.Error) {
+func Fprintf(w io.Writer, format string, a ...interface{}) (n int, error error) {
 	return fmt.Fprintf(w, format, wrap(a)...)
 }
-
 
 // Printf is a convenience wrapper for fmt.Printf.
 //
 // Calling Printf(f, x, y) is equivalent to
 // fmt.Printf(f, Formatter(x), Formatter(y)).
-func Printf(format string, a ...interface{}) (n int, errno os.Error) {
+func Printf(format string, a ...interface{}) (n int, errno error) {
 	return fmt.Printf(format, wrap(a)...)
 }
-
 
 // Sprintf is a convenience wrapper for fmt.Sprintf.
 //
@@ -57,7 +52,6 @@ func Printf(format string, a ...interface{}) (n int, errno os.Error) {
 func Sprintf(format string, a ...interface{}) string {
 	return fmt.Sprintf(format, wrap(a)...)
 }
-
 
 func wrap(a []interface{}) []interface{} {
 	w := make([]interface{}, len(a))

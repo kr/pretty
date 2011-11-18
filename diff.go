@@ -3,19 +3,15 @@ package pretty
 import (
 	"fmt"
 	"io"
-	"os"
 	"reflect"
 )
 
-
 type sbuf []string
 
-
-func (s *sbuf) Write(b []byte) (int, os.Error) {
+func (s *sbuf) Write(b []byte) (int, error) {
 	*s = append(*s, string(b))
 	return len(b), nil
 }
-
 
 // Diff returns a slice where each element describes
 // a difference between a and b.
@@ -24,18 +20,15 @@ func Diff(a, b interface{}) (desc []string) {
 	return desc
 }
 
-
 // Fdiff writes to w a description of the differences between a and b.
 func Fdiff(w io.Writer, a, b interface{}) {
 	diffWriter{w: w}.diff(reflect.ValueOf(a), reflect.ValueOf(b))
 }
 
-
 type diffWriter struct {
 	w io.Writer
 	l string // label
 }
-
 
 func (w diffWriter) printf(f string, a ...interface{}) {
 	var l string
@@ -44,7 +37,6 @@ func (w diffWriter) printf(f string, a ...interface{}) {
 	}
 	fmt.Fprintf(w.w, l+f, a...)
 }
-
 
 func (w diffWriter) diff(av, bv reflect.Value) {
 	if !av.IsValid() && bv.IsValid() {
@@ -102,7 +94,6 @@ func (w diffWriter) diff(av, bv reflect.Value) {
 		}
 	}
 }
-
 
 func (d diffWriter) relabel(name string) (d1 diffWriter) {
 	d1 = d
