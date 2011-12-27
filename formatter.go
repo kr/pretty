@@ -44,7 +44,7 @@ func (fo formatter) String() string {
 }
 
 
-func (fo formatter) passThrough(f fmt.State, c int) {
+func (fo formatter) passThrough(f fmt.State, c rune) {
 	s := "%"
 	for i := 0; i < 128; i++ {
 		if f.Flag(i) {
@@ -62,7 +62,7 @@ func (fo formatter) passThrough(f fmt.State, c int) {
 }
 
 
-func (fo formatter) Format(f fmt.State, c int) {
+func (fo formatter) Format(f fmt.State, c rune) {
 	if c == 'v' && f.Flag('#') && f.Flag(' ') {
 		fo.format(f)
 		return
