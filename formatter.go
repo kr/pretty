@@ -133,7 +133,7 @@ func (fo formatter) format(w io.Writer) {
 		writeByte(w, '}')
 	case reflect.Struct:
 		t := v.Type()
-		if reflect.DeepEqual(reflect.Zero(t).Interface(), fo.x) {
+		if tryDeepEqual(reflect.Zero(t).Interface(), fo.x) {
 			if !fo.omit {
 				io.WriteString(w, t.String())
 			}
@@ -188,6 +188,11 @@ func (fo formatter) format(w io.Writer) {
 	default:
 		fmt.Fprintf(w, "%#v", fo.x)
 	}
+}
+
+func tryDeepEqual(a, b interface{}) bool {
+	defer func() { recover() }()
+	return reflect.DeepEqual(a, b)
 }
 
 func writeByte(w io.Writer, b byte) {
