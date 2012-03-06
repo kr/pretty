@@ -1,6 +1,6 @@
-# pretty.go
+# pretty
 
-Package pretty provides pretty-printing for go values. This is useful during
+Package pretty provides pretty-printing for Go values. This is useful during
 debugging, to avoid wrapping long output lines in the terminal.
 
 It provides a function, Formatter, that can be used with any function that
@@ -19,8 +19,8 @@ package fmt that takes a format string.
 
 ## Installing
 
-    $ goinstall github.com/kr/pretty.go
+    $ goinstall github.com/kr/pretty
 
 then
 
-    import "github.com/kr/pretty.go"
+    import "github.com/kr/pretty"
