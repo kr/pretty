@@ -3,6 +3,7 @@ package pretty
 import (
 	"fmt"
 	"testing"
+	"time"
 )
 
 type test struct {
@@ -11,8 +12,8 @@ type test struct {
 }
 
 type LongStructTypeName struct {
-	longFieldName      interface{}
-	otherLongFieldName interface{}
+	LongFieldName      interface{}
+	OtherLongFieldName interface{}
 }
 
 type T struct {
@@ -37,23 +38,23 @@ var gosyntax = []test{
 	{long, `"` + long[:50] + "\" +\n\"" + long[50:] + `"`},
 	{
 		LongStructTypeName{
-			longFieldName:      LongStructTypeName{},
-			otherLongFieldName: long,
+			LongFieldName:      LongStructTypeName{},
+			OtherLongFieldName: long,
 		},
 		`pretty.LongStructTypeName{
-	longFieldName:      pretty.LongStructTypeName{},
-	otherLongFieldName: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP" +
+	LongFieldName:      pretty.LongStructTypeName{},
+	OtherLongFieldName: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP" +
 	"QRSTUVWXYZ0123456789",
 }`,
 	},
 	{
 		&LongStructTypeName{
-			longFieldName:      &LongStructTypeName{},
-			otherLongFieldName: (*LongStructTypeName)(nil),
+			LongFieldName:      &LongStructTypeName{},
+			OtherLongFieldName: (*LongStructTypeName)(nil),
 		},
 		`&pretty.LongStructTypeName{
-	longFieldName:      &pretty.LongStructTypeName{},
-	otherLongFieldName: (*pretty.LongStructTypeName)(nil),
+	LongFieldName:      &pretty.LongStructTypeName{},
+	OtherLongFieldName: (*pretty.LongStructTypeName)(nil),
 }`,
 	},
 	{
@@ -64,11 +65,11 @@ var gosyntax = []test{
 		},
 		`[]pretty.LongStructTypeName{
 	{},
-	{longFieldName:3, otherLongFieldName:3},
+	{LongFieldName:3, OtherLongFieldName:3},
 	{
-		longFieldName:      "abcdefghijklmnopqrstuvwxyzABCDEFGH" +
+		LongFieldName:      "abcdefghijklmnopqrstuvwxyzABCDEFGH" +
 		"IJKLMNOPQRSTUVWXYZ0123456789",
-		otherLongFieldName: <nil>,
+		OtherLongFieldName: <nil>,
 	},
 }`,
 	},
@@ -79,28 +80,38 @@ var gosyntax = []test{
 			T{3, 4},
 			LongStructTypeName{long, nil},
 		},
-		`[]interface { }{
+		`[]interface {}{
 	pretty.LongStructTypeName{},
 	[]byte{0x1, 0x2, 0x3},
 	pretty.T{x:3, y:4},
 	pretty.LongStructTypeName{
-		longFieldName:      "abcdefghijklmnopqrstuvwxyzABCDEFGH" +
+		LongFieldName:      "abcdefghijklmnopqrstuvwxyzABCDEFGH" +
 		"IJKLMNOPQRSTUVWXYZ0123456789",
-		otherLongFieldName: <nil>,
+		OtherLongFieldName: <nil>,
 	},
 }`,
 	},
+	{
+		time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC),
+		`time.Time{
+	sec:  <internal>,
+	nsec: <internal>,
+	loc:  <internal>,
+}`,
+	},
 }
-
 
 func TestGoSyntax(t *testing.T) {
 	for _, tt := range gosyntax {
 		s := fmt.Sprintf("%# v", Formatter(tt.v))
 		if tt.s != s {
-			t.Errorf("expected %q\n", tt.s)
-			t.Errorf("got      %q\n", s)
-			t.Errorf("expraw %s\n", tt.s)
-			t.Errorf("gotraw %s\n", s)
+			t.Fail()
+
+			t.Logf("expected %q\n", tt.s)
+			t.Logf("got      %q\n", s)
+			t.Logf("expraw %s\n", tt.s)
+			t.Logf("gotraw %s\n", s)
+			t.Logf("----------------")
 		}
 	}
 }
