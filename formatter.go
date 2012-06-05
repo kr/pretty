@@ -164,17 +164,12 @@ func (fo formatter) format(w io.Writer) {
 				for j := len(f.Name) + 1; j < max; j++ {
 					writeByte(w, ' ')
 				}
-
-				//like a try-catch but terrible
-				func() {
-					defer func() {
-						if err := recover(); err != nil {
-							io.WriteString(w, "<internal>")
-						}
-					}()
-					inner := formatter{d: fo.d + 1, x: v.Field(i).Interface()}
+				if val, ok := grabField(v, i); ok {
+					inner := formatter{d: fo.d + 1, x: val}
 					io.WriteString(w, fmt.Sprintf("%# v", inner))
-				}()
+				} else {
+					io.WriteString(w, "<internal>")
+				}
 				w.Write(commaLFBytes)
 			}
 		}
@@ -189,4 +184,13 @@ func (fo formatter) format(w io.Writer) {
 
 func writeByte(w io.Writer, b byte) {
 	w.Write([]byte{b})
+}
+
+func grabField(v reflect.Value, field int) (x interface{}, ok bool) {
+	//ok is the assertion that there was no error
+	defer func() { ok = recover() == nil }()
+
+	//try to grab the field out. if there's a panic, ok will be false
+	x = v.Field(field).Interface()
+	return
 }
