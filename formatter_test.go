@@ -3,7 +3,6 @@ package pretty
 import (
 	"fmt"
 	"testing"
-	"time"
 )
 
 type test struct {
@@ -87,10 +86,6 @@ var gosyntax = []test{
 		OtherLongFieldName: <nil>,
 	},
 }`,
-	},
-	{
-		time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC),
-		`time.Time{sec:63393490800, nsec:0, loc:(*time.Location)(0x173e58)}`,
 	},
 }
 
