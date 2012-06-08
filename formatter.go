@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	limit = 50
+	limit = 100
 )
 
 var (
@@ -24,7 +24,6 @@ type formatter struct {
 	omit bool
 }
 
-
 // Formatter makes a wrapper, f, that will format x as go source with line
 // breaks and tabs. Object f responds to the "%v" formatting verb when both the
 // "#" and " " (space) flags are set, for example:
@@ -38,11 +37,9 @@ func Formatter(x interface{}) (f fmt.Formatter) {
 	return formatter{x: x}
 }
 
-
 func (fo formatter) String() string {
 	return fmt.Sprint(fo.x) // unwrap it
 }
-
 
 func (fo formatter) passThrough(f fmt.State, c rune) {
 	s := "%"
@@ -61,7 +58,6 @@ func (fo formatter) passThrough(f fmt.State, c rune) {
 	fmt.Fprintf(f, s, fo.x)
 }
 
-
 func (fo formatter) Format(f fmt.State, c rune) {
 	if c == 'v' && f.Flag('#') && f.Flag(' ') {
 		fo.format(f)
@@ -69,7 +65,6 @@ func (fo formatter) Format(f fmt.State, c rune) {
 	}
 	fo.passThrough(f, c)
 }
-
 
 func (fo formatter) format(w io.Writer) {
 	v := reflect.ValueOf(fo.x)
@@ -169,8 +164,12 @@ func (fo formatter) format(w io.Writer) {
 				for j := len(f.Name) + 1; j < max; j++ {
 					writeByte(w, ' ')
 				}
-				inner := formatter{d: fo.d + 1, x: v.Field(i).Interface()}
-				io.WriteString(w, fmt.Sprintf("%# v", inner))
+				if val, ok := grabField(v, i); ok {
+					inner := formatter{d: fo.d + 1, x: val}
+					io.WriteString(w, fmt.Sprintf("%# v", inner))
+				} else {
+					io.WriteString(w, "<internal>")
+				}
 				w.Write(commaLFBytes)
 			}
 		}
@@ -185,4 +184,13 @@ func (fo formatter) format(w io.Writer) {
 
 func writeByte(w io.Writer, b byte) {
 	w.Write([]byte{b})
+}
+
+func grabField(v reflect.Value, field int) (x interface{}, ok bool) {
+	//ok is the assertion that there was no error
+	defer func() { ok = recover() == nil }()
+
+	//try to grab the field out. if there's a panic, ok will be false
+	x = v.Field(field).Interface()
+	return
 }
