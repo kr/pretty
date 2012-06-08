@@ -35,7 +35,7 @@ var gosyntax = []test{
 	{"a", `"a"`},
 	{1, "1"},
 	{F(5), "F(5)"},
-	{long, `"` + long[:50] + "\" +\n\"" + long[50:] + `"`},
+	{long, `"` + long + `"`},
 	{
 		LongStructTypeName{
 			LongFieldName:      LongStructTypeName{},
@@ -43,8 +43,7 @@ var gosyntax = []test{
 		},
 		`pretty.LongStructTypeName{
 	LongFieldName:      pretty.LongStructTypeName{},
-	OtherLongFieldName: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP" +
-	"QRSTUVWXYZ0123456789",
+	OtherLongFieldName: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
 }`,
 	},
 	{
@@ -67,8 +66,7 @@ var gosyntax = []test{
 	{},
 	{LongFieldName:3, OtherLongFieldName:3},
 	{
-		LongFieldName:      "abcdefghijklmnopqrstuvwxyzABCDEFGH" +
-		"IJKLMNOPQRSTUVWXYZ0123456789",
+		LongFieldName:      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
 		OtherLongFieldName: <nil>,
 	},
 }`,
@@ -85,19 +83,14 @@ var gosyntax = []test{
 	[]byte{0x1, 0x2, 0x3},
 	pretty.T{x:3, y:4},
 	pretty.LongStructTypeName{
-		LongFieldName:      "abcdefghijklmnopqrstuvwxyzABCDEFGH" +
-		"IJKLMNOPQRSTUVWXYZ0123456789",
+		LongFieldName:      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
 		OtherLongFieldName: <nil>,
 	},
 }`,
 	},
 	{
 		time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC),
-		`time.Time{
-	sec:  <internal>,
-	nsec: <internal>,
-	loc:  <internal>,
-}`,
+		`time.Time{sec:63393490800, nsec:0, loc:(*time.Location)(0x173e58)}`,
 	},
 }
 
