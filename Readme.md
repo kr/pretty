@@ -17,9 +17,15 @@ accepts a format string. For example,
 This package also provides a convenience wrapper for each function in
 package fmt that takes a format string.
 
-## Installing
 
-    $ goinstall github.com/kr/pretty
+## Documentation
+
+See [GoDoc](http://godoc.org/github.com/kr/pretty) for automatic documentation.
+
+
+## Installation
+
+    $ go get github.com/kr/pretty
 
 then
 
