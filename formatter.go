@@ -24,7 +24,6 @@ type formatter struct {
 	omit bool
 }
 
-
 // Formatter makes a wrapper, f, that will format x as go source with line
 // breaks and tabs. Object f responds to the "%v" formatting verb when both the
 // "#" and " " (space) flags are set, for example:
@@ -38,11 +37,9 @@ func Formatter(x interface{}) (f fmt.Formatter) {
 	return formatter{x: x}
 }
 
-
 func (fo formatter) String() string {
 	return fmt.Sprint(fo.x) // unwrap it
 }
-
 
 func (fo formatter) passThrough(f fmt.State, c rune) {
 	s := "%"
@@ -61,7 +58,6 @@ func (fo formatter) passThrough(f fmt.State, c rune) {
 	fmt.Fprintf(f, s, fo.x)
 }
 
-
 func (fo formatter) Format(f fmt.State, c rune) {
 	if c == 'v' && f.Flag('#') && f.Flag(' ') {
 		fo.format(f)
@@ -69,7 +65,6 @@ func (fo formatter) Format(f fmt.State, c rune) {
 	}
 	fo.passThrough(f, c)
 }
-
 
 func (fo formatter) format(w io.Writer) {
 	v := reflect.ValueOf(fo.x)
@@ -103,7 +98,11 @@ func (fo formatter) format(w io.Writer) {
 			fmt.Fprintf(w, "%#v", fo.x)
 		} else {
 			writeByte(w, '&')
-			fmt.Fprintf(w, "%# v", formatter{d: fo.d, x: e.Interface()})
+			if e.CanInterface() {
+				fmt.Fprintf(w, "%# v", formatter{d: fo.d, x: e.Interface()})
+			} else {
+				fmt.Fprint(w, e.String())
+			}
 		}
 	case reflect.Slice:
 		s := fmt.Sprintf("%#v", fo.x)
@@ -120,8 +119,12 @@ func (fo formatter) format(w io.Writer) {
 			for j := 0; j < fo.d+1; j++ {
 				writeByte(w, '\t')
 			}
-			inner := formatter{d: fo.d + 1, x: v.Index(i).Interface(), omit: t.Elem().Kind() != reflect.Interface}
-			fmt.Fprintf(w, "%# v", inner)
+			if v.Index(i).CanInterface() {
+				inner := formatter{d: fo.d + 1, x: v.Index(i).Interface(), omit: t.Elem().Kind() != reflect.Interface}
+				fmt.Fprintf(w, "%# v", inner)
+			} else {
+				fmt.Fprint(w, v.Index(i).String())
+			}
 			w.Write(commaLFBytes)
 		}
 		for j := 0; j < fo.d; j++ {
@@ -130,7 +133,7 @@ func (fo formatter) format(w io.Writer) {
 		writeByte(w, '}')
 	case reflect.Struct:
 		t := v.Type()
-		if reflect.DeepEqual(reflect.Zero(t).Interface(), fo.x) {
+		if tryDeepEqual(reflect.Zero(t).Interface(), fo.x) {
 			if !fo.omit {
 				io.WriteString(w, t.String())
 			}
@@ -169,8 +172,12 @@ func (fo formatter) format(w io.Writer) {
 				for j := len(f.Name) + 1; j < max; j++ {
 					writeByte(w, ' ')
 				}
-				inner := formatter{d: fo.d + 1, x: v.Field(i).Interface()}
-				io.WriteString(w, fmt.Sprintf("%# v", inner))
+				if v.Field(i).CanInterface() {
+					inner := formatter{d: fo.d + 1, x: v.Field(i).Interface()}
+					fmt.Fprintf(w, "%# v", inner)
+				} else {
+					io.WriteString(w, v.Field(i).String())
+				}
 				w.Write(commaLFBytes)
 			}
 		}
@@ -181,6 +188,11 @@ func (fo formatter) format(w io.Writer) {
 	default:
 		fmt.Fprintf(w, "%#v", fo.x)
 	}
+}
+
+func tryDeepEqual(a, b interface{}) bool {
+	defer func() { recover() }()
+	return reflect.DeepEqual(a, b)
 }
 
 func writeByte(w io.Writer, b byte) {
