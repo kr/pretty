@@ -18,7 +18,7 @@ This package also provides a convenience wrapper for each function in
 package fmt that takes a format string.
 
 
-# Documentation
+## Documentation
 
 See [GoDoc](http://godoc.org/github.com/kr/pretty) for automatic documentation.
 
