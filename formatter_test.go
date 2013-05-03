@@ -3,6 +3,7 @@ package pretty
 import (
 	"fmt"
 	"testing"
+	"unsafe"
 )
 
 type test struct {
@@ -21,7 +22,6 @@ type T struct {
 
 type F int
 
-
 func (f F) Format(s fmt.State, c int) {
 	fmt.Fprintf(s, "F(%d)", int(f))
 }
@@ -31,18 +31,35 @@ var long = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 var gosyntax = []test{
 	{"", `""`},
 	{"a", `"a"`},
-	{1, "1"},
-	{F(5), "F(5)"},
-	{long, `"` + long[:50] + "\" +\n\"" + long[50:] + `"`},
+	{1, "int(1)"},
+	{1.0, "float64(1)"},
+	{complex(1, 0), "(1+0i)"},
+	//{make(chan int), "(chan int)(0x1234)"},
+	{unsafe.Pointer(uintptr(1)), "unsafe.Pointer(0x1)"},
+	{func(int) {}, "func(int) {...}"},
+	{map[int]int{1: 1}, "map[int]int{1:1}"},
+	{int32(1), "int32(1)"},
+	{F(5), "pretty.F(5)"},
+	{
+		map[int]T{1: T{}},
+		`map[int]pretty.T{
+    1:  {},
+}`,
+	},
+	{
+		long,
+		`"abcdefghijklmnopqrstuvwxyzABCDE" +
+    "FGHIJKLMNOPQRSTUVWXYZ0123456789"`,
+	},
 	{
 		LongStructTypeName{
 			longFieldName:      LongStructTypeName{},
 			otherLongFieldName: long,
 		},
 		`pretty.LongStructTypeName{
-	longFieldName:      pretty.LongStructTypeName{},
-	otherLongFieldName: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP" +
-	"QRSTUVWXYZ0123456789",
+    longFieldName:      pretty.LongStructTypeName{},
+    otherLongFieldName: "abcdefghijklmnopqrstuvwxyzABCDE" +
+                        "FGHIJKLMNOPQRSTUVWXYZ0123456789",
 }`,
 	},
 	{
@@ -51,8 +68,8 @@ var gosyntax = []test{
 			otherLongFieldName: (*LongStructTypeName)(nil),
 		},
 		`&pretty.LongStructTypeName{
-	longFieldName:      &pretty.LongStructTypeName{},
-	otherLongFieldName: (*pretty.LongStructTypeName)(nil),
+    longFieldName:      &pretty.LongStructTypeName{},
+    otherLongFieldName: (*pretty.LongStructTypeName)(nil),
 }`,
 	},
 	{
@@ -62,13 +79,16 @@ var gosyntax = []test{
 			{long, nil},
 		},
 		`[]pretty.LongStructTypeName{
-	{},
-	{longFieldName:3, otherLongFieldName:3},
-	{
-		longFieldName:      "abcdefghijklmnopqrstuvwxyzABCDEFGH" +
-		"IJKLMNOPQRSTUVWXYZ0123456789",
-		otherLongFieldName: <nil>,
-	},
+    {},
+    {
+        longFieldName:      int(3),
+        otherLongFieldName: int(3),
+    },
+    {
+        longFieldName:      "abcdefghijklmnopqrstuvwxyzABCDE" +
+                            "FGHIJKLMNOPQRSTUVWXYZ0123456789",
+        otherLongFieldName: nil,
+    },
 }`,
 	},
 	{
@@ -78,28 +98,27 @@ var gosyntax = []test{
 			T{3, 4},
 			LongStructTypeName{long, nil},
 		},
-		`[]interface { }{
-	pretty.LongStructTypeName{},
-	[]byte{0x1, 0x2, 0x3},
-	pretty.T{x:3, y:4},
-	pretty.LongStructTypeName{
-		longFieldName:      "abcdefghijklmnopqrstuvwxyzABCDEFGH" +
-		"IJKLMNOPQRSTUVWXYZ0123456789",
-		otherLongFieldName: <nil>,
-	},
+		`[]interface {}{
+    pretty.LongStructTypeName{},
+    []uint8{0x1, 0x2, 0x3},
+    pretty.T{x:3, y:4},
+    pretty.LongStructTypeName{
+        longFieldName:      "abcdefghijklmnopqrstuvwxyzABCDE" +
+                            "FGHIJKLMNOPQRSTUVWXYZ0123456789",
+        otherLongFieldName: nil,
+    },
 }`,
 	},
 }
-
 
 func TestGoSyntax(t *testing.T) {
 	for _, tt := range gosyntax {
 		s := fmt.Sprintf("%# v", Formatter(tt.v))
 		if tt.s != s {
-			t.Errorf("expected %q\n", tt.s)
-			t.Errorf("got      %q\n", s)
-			t.Errorf("expraw %s\n", tt.s)
-			t.Errorf("gotraw %s\n", s)
+			t.Errorf("expected %q", tt.s)
+			t.Errorf("got      %q", s)
+			t.Errorf("expraw\n%s", tt.s)
+			t.Errorf("gotraw\n%s", s)
 		}
 	}
 }

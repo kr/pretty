@@ -30,37 +30,33 @@ var diffs = []difftest{
 	{S{S: new(S)}, S{S: &S{A: 1}}, []string{`S.A: 0 != 1`}},
 	{S{}, S{I: 0}, []string{`I: nil != 0`}},
 	{S{I: 1}, S{I: "x"}, []string{`I: int != string`}},
-	{S{}, S{C: []int{1}}, []string{`C: []int{} != []int{1}`}},
+	{S{}, S{C: []int{1}}, []string{`C: []int(nil) != []int{1}`}},
+	{S{C: []int{}}, S{C: []int{1}}, []string{`C: []int{} != []int{1}`}},
 	{S{}, S{A: 1, S: new(S)}, []string{`A: 0 != 1`, `S: nil != &{0 <nil> <nil> []}`}},
 }
-
 
 func TestDiff(t *testing.T) {
 	for _, tt := range diffs {
 		got := Diff(tt.a, tt.b)
-		if len(got) != len(tt.exp) {
+		eq := len(got) == len(tt.exp)
+		if eq {
+			for i := range got {
+				eq = eq && got[i] == tt.exp[i]
+			}
+		}
+		if !eq {
 			t.Errorf("diffing % #v", tt.a)
 			t.Errorf("with    % #v", tt.b)
 			diffdiff(t, got, tt.exp)
 			continue
 		}
-		for i := range got {
-			if got[i] != tt.exp[i] {
-				t.Errorf("diffing % #v", tt.a)
-				t.Errorf("with    % #v", tt.b)
-				diffdiff(t, got, tt.exp)
-				break
-			}
-		}
 	}
 }
-
 
 func diffdiff(t *testing.T, got, exp []string) {
 	minus(t, "unexpected:", got, exp)
 	minus(t, "missing:", exp, got)
 }
-
 
 func minus(t *testing.T, s string, a, b []string) {
 	var i, j int
