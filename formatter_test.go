@@ -39,7 +39,18 @@ var gosyntax = []test{
 	{func(int) {}, "func(int) {...}"},
 	{map[int]int{1: 1}, "map[int]int{1:1}"},
 	{int32(1), "int32(1)"},
+	{[]string{"a"}, `[]string{"a"}`},
+	{
+		[]string{long},
+		`[]string{"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"}`,
+	},
 	{F(5), "pretty.F(5)"},
+	{
+		map[int][]byte{1: []byte{}},
+		`map[int][]uint8{
+    1:  {},
+}`,
+	},
 	{
 		map[int]T{1: T{}},
 		`map[int]pretty.T{
@@ -48,8 +59,7 @@ var gosyntax = []test{
 	},
 	{
 		long,
-		`"abcdefghijklmnopqrstuvwxyzABCDE" +
-    "FGHIJKLMNOPQRSTUVWXYZ0123456789"`,
+		`"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"`,
 	},
 	{
 		LongStructTypeName{
@@ -58,8 +68,7 @@ var gosyntax = []test{
 		},
 		`pretty.LongStructTypeName{
     longFieldName:      pretty.LongStructTypeName{},
-    otherLongFieldName: "abcdefghijklmnopqrstuvwxyzABCDE" +
-                        "FGHIJKLMNOPQRSTUVWXYZ0123456789",
+    otherLongFieldName: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
 }`,
 	},
 	{
@@ -85,8 +94,7 @@ var gosyntax = []test{
         otherLongFieldName: int(3),
     },
     {
-        longFieldName:      "abcdefghijklmnopqrstuvwxyzABCDE" +
-                            "FGHIJKLMNOPQRSTUVWXYZ0123456789",
+        longFieldName:      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
         otherLongFieldName: nil,
     },
 }`,
@@ -103,8 +111,7 @@ var gosyntax = []test{
     []uint8{0x1, 0x2, 0x3},
     pretty.T{x:3, y:4},
     pretty.LongStructTypeName{
-        longFieldName:      "abcdefghijklmnopqrstuvwxyzABCDE" +
-                            "FGHIJKLMNOPQRSTUVWXYZ0123456789",
+        longFieldName:      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
         otherLongFieldName: nil,
     },
 }`,

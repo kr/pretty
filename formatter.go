@@ -180,7 +180,9 @@ func (p *printer) printValue(v reflect.Value, showType bool) {
 		}
 	case reflect.Array, reflect.Slice:
 		t := v.Type()
-		io.WriteString(p, t.String())
+		if showType {
+			io.WriteString(p, t.String())
+		}
 		writeByte(p, '{')
 		expand := !canInline(v.Type())
 		pp := p
@@ -255,7 +257,7 @@ func canInline(t reflect.Type) bool {
 
 func canExpand(t reflect.Type) bool {
 	switch t.Kind() {
-	case reflect.String, reflect.Map, reflect.Struct,
+	case reflect.Map, reflect.Struct,
 		reflect.Interface, reflect.Array, reflect.Slice,
 		reflect.Ptr:
 		return true
@@ -264,6 +266,9 @@ func canExpand(t reflect.Type) bool {
 }
 
 func (p *printer) fmtString(s string) {
+	q := strconv.Quote(s)
+	io.WriteString(p, q)
+	return
 	const segSize = 30
 	y, c := 0, 0
 	for i := range s {
