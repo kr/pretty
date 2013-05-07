@@ -27,7 +27,7 @@ type T struct {
 
 type F int
 
-func (f F) Format(s fmt.State, c int) {
+func (f F) Format(s fmt.State, c rune) {
 	fmt.Fprintf(s, "F(%d)", int(f))
 }
 
