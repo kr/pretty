@@ -34,6 +34,7 @@ func (f F) Format(s fmt.State, c int) {
 var long = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 var gosyntax = []test{
+	{nil, `nil`},
 	{"", `""`},
 	{"a", `"a"`},
 	{1, "int(1)"},

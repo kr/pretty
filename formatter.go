@@ -229,8 +229,8 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 		io.WriteString(p, " {...}")
 	case reflect.UnsafePointer:
 		p.printInline(v, v.Pointer(), showType)
-	default:
-		io.WriteString(p, "(UNKNOWN)")
+	case reflect.Invalid:
+		io.WriteString(p, "nil")
 	}
 }
 
