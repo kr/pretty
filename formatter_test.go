@@ -2,6 +2,7 @@ package pretty
 
 import (
 	"fmt"
+	"io"
 	"testing"
 	"unsafe"
 )
@@ -14,6 +15,10 @@ type test struct {
 type LongStructTypeName struct {
 	longFieldName      interface{}
 	otherLongFieldName interface{}
+}
+
+type SA struct {
+	t *T
 }
 
 type T struct {
@@ -39,12 +44,19 @@ var gosyntax = []test{
 	{func(int) {}, "func(int) {...}"},
 	{map[int]int{1: 1}, "map[int]int{1:1}"},
 	{int32(1), "int32(1)"},
+	{io.EOF, `&errors.errorString{s:"EOF"}`},
 	{[]string{"a"}, `[]string{"a"}`},
 	{
 		[]string{long},
 		`[]string{"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"}`,
 	},
 	{F(5), "pretty.F(5)"},
+	{
+		SA{&T{1, 2}},
+		`pretty.SA{
+    t:  &pretty.T{x:1, y:2},
+}`,
+	},
 	{
 		map[int][]byte{1: []byte{}},
 		`map[int][]uint8{

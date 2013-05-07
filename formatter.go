@@ -15,6 +15,8 @@ const (
 
 type formatter struct {
 	x interface{}
+	force bool
+	quote bool
 }
 
 // Formatter makes a wrapper, f, that will format x as go source with line
@@ -27,7 +29,7 @@ type formatter struct {
 // format x according to the usual rules of package fmt.
 // In particular, if x satisfies fmt.Formatter, then x.Format will be called.
 func Formatter(x interface{}) (f fmt.Formatter) {
-	return formatter{x: x}
+	return formatter{x: x, quote: true}
 }
 
 func (fo formatter) String() string {
@@ -52,10 +54,10 @@ func (fo formatter) passThrough(f fmt.State, c rune) {
 }
 
 func (fo formatter) Format(f fmt.State, c rune) {
-	if c == 'v' && f.Flag('#') && f.Flag(' ') {
+	if fo.force || c == 'v' && f.Flag('#') && f.Flag(' ') {
 		w := tabwriter.NewWriter(f, 4, 4, 1, ' ', 0)
 		p := &printer{tw: w, Writer: w}
-		p.printValue(reflect.ValueOf(fo.x), true)
+		p.printValue(reflect.ValueOf(fo.x), true, fo.quote)
 		w.Flush()
 		return
 	}
@@ -83,7 +85,7 @@ func (p *printer) printInline(v reflect.Value, x interface{}, showType bool) {
 	}
 }
 
-func (p *printer) printValue(v reflect.Value, showType bool) {
+func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 	switch v.Kind() {
 	case reflect.Bool:
 		p.printInline(v, v.Bool(), showType)
@@ -96,7 +98,7 @@ func (p *printer) printValue(v reflect.Value, showType bool) {
 	case reflect.Complex64, reflect.Complex128:
 		fmt.Fprintf(p, "%#v", v.Complex())
 	case reflect.String:
-		p.fmtString(v.String())
+		p.fmtString(v.String(), quote)
 	case reflect.Map:
 		t := v.Type()
 		if showType {
@@ -115,13 +117,13 @@ func (p *printer) printValue(v reflect.Value, showType bool) {
 				showTypeInStruct := true
 				k := keys[i]
 				mv := v.MapIndex(k)
-				pp.printValue(k, false)
+				pp.printValue(k, false, true)
 				writeByte(pp, ':')
 				if expand {
 					writeByte(pp, '\t')
 				}
 				showTypeInStruct = t.Elem().Kind() == reflect.Interface
-				pp.printValue(mv, showTypeInStruct)
+				pp.printValue(mv, showTypeInStruct, true)
 				if expand {
 					io.WriteString(pp, ",\n")
 				} else if i < v.Len()-1 {
@@ -156,7 +158,7 @@ func (p *printer) printValue(v reflect.Value, showType bool) {
 					}
 					showTypeInStruct = f.Type.Kind() == reflect.Interface
 				}
-				pp.printValue(getField(v, i), showTypeInStruct)
+				pp.printValue(getField(v, i), showTypeInStruct, true)
 				if expand {
 					io.WriteString(pp, ",\n")
 				} else if i < v.NumField()-1 {
@@ -173,7 +175,7 @@ func (p *printer) printValue(v reflect.Value, showType bool) {
 		case e.Kind() == reflect.Invalid:
 			io.WriteString(p, "nil")
 		case e.IsValid():
-			p.printValue(e, showType)
+			p.printValue(e, showType, true)
 		default:
 			io.WriteString(p, v.Type().String())
 			io.WriteString(p, "(nil)")
@@ -192,7 +194,7 @@ func (p *printer) printValue(v reflect.Value, showType bool) {
 		}
 		for i := 0; i < v.Len(); i++ {
 			showTypeInSlice := t.Elem().Kind() == reflect.Interface
-			pp.printValue(v.Index(i), showTypeInSlice)
+			pp.printValue(v.Index(i), showTypeInSlice, true)
 			if expand {
 				io.WriteString(pp, ",\n")
 			} else if i < v.Len()-1 {
@@ -211,7 +213,7 @@ func (p *printer) printValue(v reflect.Value, showType bool) {
 			io.WriteString(p, ")(nil)")
 		} else {
 			writeByte(p, '&')
-			p.printValue(e, true)
+			p.printValue(e, true, true)
 		}
 	case reflect.Chan:
 		x := v.Pointer()
@@ -265,22 +267,11 @@ func canExpand(t reflect.Type) bool {
 	return false
 }
 
-func (p *printer) fmtString(s string) {
-	q := strconv.Quote(s)
-	io.WriteString(p, q)
-	return
-	const segSize = 30
-	y, c := 0, 0
-	for i := range s {
-		if c > segSize {
-			q := strconv.Quote(s[y:][:c])
-			io.WriteString(p, q)
-			io.WriteString(p, " +\n\t")
-			y, c = i, 0
-		}
-		c++
+func (p *printer) fmtString(s string, quote bool) {
+	if quote {
+		s = strconv.Quote(s)
 	}
-	fmt.Fprintf(p, "%#v", s[y:][:c])
+	io.WriteString(p, s)
 }
 
 func tryDeepEqual(a, b interface{}) bool {
@@ -298,10 +289,4 @@ func getField(v reflect.Value, i int) reflect.Value {
 		val = val.Elem()
 	}
 	return val
-}
-
-func nonzero(v reflect.Value) bool {
-	defer func() { recover() }()
-	z := reflect.Zero(v.Type())
-	return !reflect.DeepEqual(z.Interface(), v.Interface())
 }
