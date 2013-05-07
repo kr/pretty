@@ -14,7 +14,7 @@ const (
 )
 
 type formatter struct {
-	x interface{}
+	x     interface{}
 	force bool
 	quote bool
 }
