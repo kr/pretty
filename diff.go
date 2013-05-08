@@ -86,21 +86,63 @@ func (w diffWriter) diff(av, bv reflect.Value) {
 		for i := 0; i < av.NumField(); i++ {
 			w.relabel(at.Field(i).Name).diff(av.Field(i), bv.Field(i))
 		}
+	case reflect.Map:
+		ak, both, bk := keyDiff(av.MapKeys(), bv.MapKeys())
+		for _, k := range ak {
+			w := w.relabel(fmt.Sprintf("[%q]", k.String()))
+			w.printf("%q != (missing)", av.MapIndex(k))
+		}
+		for _, k := range both {
+			w := w.relabel(fmt.Sprintf("[%q]", k.String()))
+			w.diff(av.MapIndex(k), bv.MapIndex(k))
+		}
+		for _, k := range bk {
+			w := w.relabel(fmt.Sprintf("[%q]", k.String()))
+			w.printf("(missing) != %q", bv.MapIndex(k))
+		}
 	case reflect.Interface:
 		w.diff(reflect.ValueOf(av.Interface()), reflect.ValueOf(bv.Interface()))
 	default:
 		if !reflect.DeepEqual(av.Interface(), bv.Interface()) {
-			w.printf("%#v != %#v", av.Interface(), bv.Interface())
+			w.printf("%# v != %# v", Formatter(av.Interface()), Formatter(bv.Interface()))
 		}
 	}
 }
 
 func (d diffWriter) relabel(name string) (d1 diffWriter) {
 	d1 = d
-	if d.l != "" {
-		d1.l = d.l + "." + name
-	} else {
-		d1.l = name
+	if d.l != "" && name[0] != '[' {
+		d1.l += "."
 	}
+	d1.l += name
 	return d1
+}
+
+func keyDiff(a, b []reflect.Value) (ak, both, bk []reflect.Value) {
+	for _, av := range a {
+		inBoth := false
+		for _, bv := range b {
+			if reflect.DeepEqual(av.Interface(), bv.Interface()) {
+				inBoth = true
+				both = append(both, av)
+				break
+			}
+		}
+		if !inBoth {
+			ak = append(ak, av)
+		}
+	}
+	for _, bv := range b {
+		inBoth := false
+		for _, av := range a {
+			if reflect.DeepEqual(av.Interface(), bv.Interface()) {
+				inBoth = true
+				break
+			}
+		}
+		if !inBoth {
+			bk = append(bk, bv)
+		}
+	}
+	return
 }
