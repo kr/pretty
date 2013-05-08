@@ -39,6 +39,7 @@ var gosyntax = []test{
 	{"a", `"a"`},
 	{1, "int(1)"},
 	{1.0, "float64(1)"},
+	{[]int(nil), "[]int(nil)"},
 	{complex(1, 0), "(1+0i)"},
 	//{make(chan int), "(chan int)(0x1234)"},
 	{unsafe.Pointer(uintptr(1)), "unsafe.Pointer(0x1)"},

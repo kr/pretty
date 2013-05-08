@@ -185,6 +185,14 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 		if showType {
 			io.WriteString(p, t.String())
 		}
+		if v.IsNil() && showType {
+			io.WriteString(p, "(nil)")
+			break
+		}
+		if v.IsNil() {
+			io.WriteString(p, "nil")
+			break
+		}
 		writeByte(p, '{')
 		expand := !canInline(v.Type())
 		pp := p
