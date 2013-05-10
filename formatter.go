@@ -185,11 +185,11 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 		if showType {
 			io.WriteString(p, t.String())
 		}
-		if v.IsNil() && showType {
+		if v.Kind() == reflect.Slice && v.IsNil() && showType {
 			io.WriteString(p, "(nil)")
 			break
 		}
-		if v.IsNil() {
+		if v.Kind() == reflect.Slice && v.IsNil() {
 			io.WriteString(p, "nil")
 			break
 		}
