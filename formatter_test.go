@@ -3,6 +3,7 @@ package pretty
 import (
 	"fmt"
 	"io"
+	"strings"
 	"testing"
 	"unsafe"
 )
@@ -145,4 +146,114 @@ func TestGoSyntax(t *testing.T) {
 			t.Errorf("gotraw\n%s", s)
 		}
 	}
+}
+
+type I struct {
+	i int
+	R interface{}
+}
+
+func (i *I) I() *I { return i.R.(*I) }
+
+func TestCycle(t *testing.T) {
+	type A struct{ *A }
+	v := &A{}
+	v.A = v
+
+	// panics from stack overflow without cycle detection
+	t.Logf("Example cycle:\n%# v", Formatter(v))
+
+	p := &A{}
+	s := fmt.Sprintf("%# v", Formatter([]*A{p, p}))
+	if strings.Contains(s, "CYCLIC") {
+		t.Errorf("Repeated address detected as cyclic reference:\n%s", s)
+	}
+
+	type R struct {
+		i int
+		*R
+	}
+	r := &R{
+		i: 1,
+		R: &R{
+			i: 2,
+			R: &R{
+				i: 3,
+			},
+		},
+	}
+	r.R.R.R = r
+	t.Logf("Example longer cycle:\n%# v", Formatter(r))
+
+	r = &R{
+		i: 1,
+		R: &R{
+			i: 2,
+			R: &R{
+				i: 3,
+				R: &R{
+					i: 4,
+					R: &R{
+						i: 5,
+						R: &R{
+							i: 6,
+							R: &R{
+								i: 7,
+								R: &R{
+									i: 8,
+									R: &R{
+										i: 9,
+										R: &R{
+											i: 10,
+											R: &R{
+												i: 11,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	// here be pirates
+	r.R.R.R.R.R.R.R.R.R.R.R = r
+	t.Logf("Example long interface cycle:\n%# v", Formatter(r))
+
+	i := &I{
+		i: 1,
+		R: &I{
+			i: 2,
+			R: &I{
+				i: 3,
+				R: &I{
+					i: 4,
+					R: &I{
+						i: 5,
+						R: &I{
+							i: 6,
+							R: &I{
+								i: 7,
+								R: &I{
+									i: 8,
+									R: &I{
+										i: 9,
+										R: &I{
+											i: 10,
+											R: &I{
+												i: 11,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	t.Logf("Example very long cycle:\n%# v", Formatter(i))
 }
