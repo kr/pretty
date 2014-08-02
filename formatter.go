@@ -58,7 +58,7 @@ func (fo formatter) Format(f fmt.State, c rune) {
 	if fo.force || c == 'v' && f.Flag('#') && f.Flag(' ') {
 		w := tabwriter.NewWriter(f, 4, 4, 1, ' ', 0)
 		p := &printer{tw: w, Writer: w}
-		p.printValue(reflect.ValueOf(fo.x), true, fo.quote)
+		p.printValue(reflect.ValueOf(fo.x), true, fo.quote, make(map[visit]int), 0)
 		w.Flush()
 		return
 	}
@@ -86,7 +86,19 @@ func (p *printer) printInline(v reflect.Value, x interface{}, showType bool) {
 	}
 }
 
-func (p *printer) printValue(v reflect.Value, showType, quote bool) {
+// printValue must keep track of already-printed pointer values to avoid
+// infinite recursion.
+type visit struct {
+	v   uintptr
+	typ reflect.Type
+}
+
+func (p *printer) printValue(v reflect.Value, showType, quote bool, visited map[visit]int, depth int) {
+	if depth > 10 {
+		io.WriteString(p, "!%v(DEPTH EXCEEDED)")
+		return
+	}
+
 	switch v.Kind() {
 	case reflect.Bool:
 		p.printInline(v, v.Bool(), showType)
@@ -118,13 +130,13 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 				showTypeInStruct := true
 				k := keys[i]
 				mv := v.MapIndex(k)
-				pp.printValue(k, false, true)
+				pp.printValue(k, false, true, visited, depth)
 				writeByte(pp, ':')
 				if expand {
 					writeByte(pp, '\t')
 				}
 				showTypeInStruct = t.Elem().Kind() == reflect.Interface
-				pp.printValue(mv, showTypeInStruct, true)
+				pp.printValue(mv, showTypeInStruct, true, visited, depth)
 				if expand {
 					io.WriteString(pp, ",\n")
 				} else if i < v.Len()-1 {
@@ -138,6 +150,16 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 		writeByte(p, '}')
 	case reflect.Struct:
 		t := v.Type()
+		if v.CanAddr() {
+			addr := v.UnsafeAddr()
+			vis := visit{addr, t}
+			if vd, ok := visited[vis]; ok && vd < depth {
+				p.fmtString(t.String()+"{(CYCLIC REFERENCE)}", false)
+				break // don't print v again
+			}
+			visited[vis] = depth
+		}
+
 		if showType {
 			io.WriteString(p, t.String())
 		}
@@ -159,7 +181,7 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 					}
 					showTypeInStruct = labelType(f.Type)
 				}
-				pp.printValue(getField(v, i), showTypeInStruct, true)
+				pp.printValue(getField(v, i), showTypeInStruct, true, visited, depth)
 				if expand {
 					io.WriteString(pp, ",\n")
 				} else if i < v.NumField()-1 {
@@ -176,7 +198,7 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 		case e.Kind() == reflect.Invalid:
 			io.WriteString(p, "nil")
 		case e.IsValid():
-			p.printValue(e, showType, true)
+			p.printValue(e, showType, true, visited, depth+1)
 		default:
 			io.WriteString(p, v.Type().String())
 			io.WriteString(p, "(nil)")
@@ -203,7 +225,7 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 		}
 		for i := 0; i < v.Len(); i++ {
 			showTypeInSlice := t.Elem().Kind() == reflect.Interface
-			pp.printValue(v.Index(i), showTypeInSlice, true)
+			pp.printValue(v.Index(i), showTypeInSlice, true, visited, depth)
 			if expand {
 				io.WriteString(pp, ",\n")
 			} else if i < v.Len()-1 {
@@ -222,7 +244,7 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 			io.WriteString(p, ")(nil)")
 		} else {
 			writeByte(p, '&')
-			p.printValue(e, true, true)
+			p.printValue(e, true, true, visited, depth+1)
 		}
 	case reflect.Chan:
 		x := v.Pointer()
