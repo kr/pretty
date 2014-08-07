@@ -220,7 +220,7 @@ func TestCycle(t *testing.T) {
 	}
 	// here be pirates
 	r.R.R.R.R.R.R.R.R.R.R.R = r
-	t.Logf("Example long interface cycle:\n%# v", Formatter(r))
+	t.Logf("Example very long cycle:\n%# v", Formatter(r))
 
 	i := &I{
 		i: 1,
@@ -255,5 +255,7 @@ func TestCycle(t *testing.T) {
 			},
 		},
 	}
-	t.Logf("Example very long cycle:\n%# v", Formatter(i))
+	iv := i.I().I().I().I().I().I().I().I().I().I()
+	*iv = *i
+	t.Logf("Example long interface cycle:\n%# v", Formatter(i))
 }
