@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 	"testing"
+	"time"
 	"unsafe"
 )
 
@@ -258,4 +259,14 @@ func TestCycle(t *testing.T) {
 	iv := i.I().I().I().I().I().I().I().I().I().I()
 	*iv = *i
 	t.Logf("Example long interface cycle:\n%# v", Formatter(i))
+}
+
+func TestTime(t *testing.T) {
+	date := time.Date(2006, 1, 2, 3, 4, 5, .678901e9, time.Local)
+	d, _ := date.MarshalText()
+	s := fmt.Sprintf("%# v", Formatter(date))
+
+	if s != string(d) {
+		t.Errorf("expected %s, got %s", string(d), s)
+	}
 }
