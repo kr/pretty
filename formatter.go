@@ -169,12 +169,12 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 		writeByte(p, '{')
 		printed := false
 		if v.CanInterface() {
-			switch v.Interface().(type) {
+			switch vv := v.Interface().(type) {
 			case fmt.Stringer:
-				p.fmtString(v.Interface().(fmt.Stringer).String(), true)
+				p.fmtString(vv.String(), true)
 				printed = true
 			case encoding.TextMarshaler:
-				if b, err := v.Interface().(encoding.TextMarshaler).MarshalText(); err == nil {
+				if b, err := vv.MarshalText(); err == nil {
 					p.fmtString(string(b), true)
 					printed = true
 				}
