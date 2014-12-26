@@ -1,6 +1,7 @@
 package pretty
 
 import (
+	"encoding"
 	"fmt"
 	"io"
 	"reflect"
@@ -166,7 +167,20 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 			io.WriteString(p, t.String())
 		}
 		writeByte(p, '{')
-		if nonzero(v) {
+		printed := false
+		if v.CanInterface() {
+			switch v.Interface().(type) {
+			case fmt.Stringer:
+				p.fmtString(v.Interface().(fmt.Stringer).String(), true)
+				printed = true
+			case encoding.TextMarshaler:
+				if b, err := v.Interface().(encoding.TextMarshaler).MarshalText(); err == nil {
+					p.fmtString(string(b), true)
+					printed = true
+				}
+			}
+		}
+		if !printed && nonzero(v) {
 			expand := !canInline(v.Type())
 			pp := p
 			if expand {
