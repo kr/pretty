@@ -45,7 +45,7 @@ var gosyntax = []test{
 	{[0]int{}, "[0]int{}"},
 	{complex(1, 0), "(1+0i)"},
 	//{make(chan int), "(chan int)(0x1234)"},
-	{unsafe.Pointer(uintptr(1)), "unsafe.Pointer(0x1)"},
+	{unsafe.Pointer(uintptr(unsafe.Pointer(&long))), fmt.Sprintf("unsafe.Pointer(0x%02x)", uintptr(unsafe.Pointer(&long)))},
 	{func(int) {}, "func(int) {...}"},
 	{map[int]int{1: 1}, "map[int]int{1:1}"},
 	{int32(1), "int32(1)"},
