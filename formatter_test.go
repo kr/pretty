@@ -64,13 +64,13 @@ var gosyntax = []test{
 }`,
 	},
 	{
-		map[int][]byte{1: []byte{}},
+		map[int][]byte{1: {}},
 		`map[int][]uint8{
     1:  {},
 }`,
 	},
 	{
-		map[int]T{1: T{}},
+		map[int]T{1: {}},
 		`map[int]pretty.T{
     1:  {},
 }`,
