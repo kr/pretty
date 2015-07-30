@@ -163,7 +163,11 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 		}
 
 		if showType {
-			io.WriteString(p, t.String())
+			if t.Name() == "" {
+				io.WriteString(p, "struct")
+			} else {
+				io.WriteString(p, t.String())
+			}
 		}
 		writeByte(p, '{')
 		if nonzero(v) {
