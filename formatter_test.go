@@ -3,6 +3,7 @@ package pretty
 import (
 	"fmt"
 	"io"
+	"reflect"
 	"strings"
 	"testing"
 	"unsafe"
@@ -38,7 +39,7 @@ func (f F) Format(s fmt.State, c rune) {
 	fmt.Fprintf(s, "F(%d)", int(f))
 }
 
-type Stringer struct { i int }
+type Stringer struct{ i int }
 
 func (s *Stringer) String() string { return "foo" }
 
@@ -91,15 +92,36 @@ var gosyntax = []test{
 }`,
 	},
 	{
-		map[int][]byte{1: {}},
-		`map[int][]uint8{
-    1:  {},
+		map[int]string{1: "a", 2: "b"},
+		`map[int]string{1:"a", 2:"b"}`,
+	},
+	{
+		map[int]string{1: "a", 2: "b", 3: "c"},
+		`map[int]string{
+    1:  "a",
+    2:  "b",
+    3:  "c",
 }`,
 	},
 	{
-		map[int]T{1: {}},
+		map[int][]byte{1: {}, 2: {}},
+		`map[int][]uint8{
+    1:  {},
+    2:  {},
+}`,
+	},
+	{
+		map[int]T{1: {}, 2: {}},
 		`map[int]pretty.T{
     1:  {},
+    2:  {},
+}`,
+	},
+	{
+		map[string]T{"a": {}, "b": {}},
+		`map[string]pretty.T{
+    "a": {},
+    "b": {},
 }`,
 	},
 	{
@@ -285,4 +307,43 @@ func TestCycle(t *testing.T) {
 	iv := i.I().I().I().I().I().I().I().I().I().I()
 	*iv = *i
 	t.Logf("Example long interface cycle:\n%# v", Formatter(i))
+}
+
+func TestLess(t *testing.T) {
+	zero := new(int)
+	one := new(int)
+	*one = 1
+	data := []struct {
+		i, j interface{}
+		less bool
+	}{
+		{true, true, false},
+		{false, true, true},
+		{uint(0), uint(0), false},
+		{uint(0), uint(1), true},
+		{0., 0., false},
+		{0., 1., true},
+		{complex(0., 0.), complex(0., 0.), false},
+		{complex(0., 0.), complex(1., 0.), true},
+		{complex(1., 0.), complex(0., 0.), false},
+		{[]int{0, 0}, []int{0}, false},
+		{[]int{0, 0}, []int{1}, true},
+		{[]int{1}, []int{0}, false},
+		{map[int]int{}, map[int]int{0: 0}, true},
+		//{interface{}(0), interface{}(0), false},
+		{TestLess, TestCycle, false},
+		{TestCycle, TestLess, true},
+		{zero, zero, false},
+		{zero, one, true},
+		{zero, (*int)(nil), false},
+		{(*int)(nil), (*int)(nil), false},
+		{(*int)(nil), zero, true},
+	}
+	for _, line := range data {
+		if less(reflect.ValueOf(line.i), reflect.ValueOf(line.j)) != line.less {
+			t.Errorf("less(%q, %q) != %t", line.i, line.j, line.less)
+		}
+	}
+	// Return value is non-deterministic. Just ensure it doesn't crash.
+	less(reflect.ValueOf(struct{}{}), reflect.ValueOf(struct{}{}))
 }
