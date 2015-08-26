@@ -261,45 +261,23 @@ func TestCycle(t *testing.T) {
 	t.Logf("Example long interface cycle:\n%# v", Formatter(i))
 }
 
-func Test(t *testing.T) {
-	date := time.Date(2006, 1, 2, 3, 4, 5, .678901e9, time.Local)
+type GoStringerStruct struct{
+	time.Time
+}
 
-	s := fmt.Sprintf("%s", Formatter(date))
+func (t GoStringerStruct) GoString() string {
+	return t.Format("2006-01-02T15:04:05")
+}
 
-	if date.String() != s {
-		t.Errorf("expected %s, got %s", date.String(), s)
+func TestWithStringer(t *testing.T) {
+	s := GoStringerStruct{time.Date(2015,1,1,0,0,0,0,time.Local)}
+
+	str := fmt.Sprintf("%# v", Formatter(s))
+	goString := "pretty.GoStringerStruct{\""+s.GoString()+"\"}"
+
+	if goString != str {
+		t.Errorf("expected %s, got %s", s.GoString(), str)
 	}
-}
 
-type StringerStruct struct{}
-
-func (t StringerStruct) String() string {
-	return "StringerStruct"
-}
-
-func TestStringer(t *testing.T) {
-	s := new(StringerStruct)
-
-	str := fmt.Sprintf("%s", Formatter(s))
-
-	if s.String() != str {
-		t.Errorf("expected %s, got %s", s.String(), str)
-	}
-}
-
-type MarshalTextStruct struct{}
-
-func (t MarshalTextStruct) MarshalText() ([]byte, error) {
-	return []byte("MarshalTextStruct"), nil
-}
-
-func TestMarshalTextStruct(t *testing.T) {
-	s := new(MarshalTextStruct)
-
-	m, _ := s.MarshalText()
-	str := fmt.Sprintf("%s", Formatter(m))
-
-	if string(m) != str {
-		t.Errorf("expected %s, got %s", m, str)
-	}
+	t.Log(str)
 }

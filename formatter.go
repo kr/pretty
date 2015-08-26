@@ -1,7 +1,7 @@
 package pretty
 
 import (
-	"encoding"
+//	"encoding"
 	"fmt"
 	"io"
 	"reflect"
@@ -170,14 +170,9 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 		printed := false
 		if v.CanInterface() {
 			switch vv := v.Interface().(type) {
-			case fmt.Stringer:
-				p.fmtString(vv.String(), true)
+			case fmt.GoStringer:
+				p.fmtString(vv.GoString(), true)
 				printed = true
-			case encoding.TextMarshaler:
-				if b, err := vv.MarshalText(); err == nil {
-					p.fmtString(string(b), true)
-					printed = true
-				}
 			}
 		}
 		if !printed && nonzero(v) {
