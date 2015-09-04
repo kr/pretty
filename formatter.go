@@ -1,6 +1,7 @@
 package pretty
 
 import (
+//	"encoding"
 	"fmt"
 	"io"
 	"reflect"
@@ -166,7 +167,15 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 			io.WriteString(p, t.String())
 		}
 		writeByte(p, '{')
-		if nonzero(v) {
+		printed := false
+		if v.CanInterface() {
+			switch vv := v.Interface().(type) {
+			case fmt.GoStringer:
+				p.fmtString(vv.GoString(), true)
+				printed = true
+			}
+		}
+		if !printed && nonzero(v) {
 			expand := !canInline(v.Type())
 			pp := p
 			if expand {

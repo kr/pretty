@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 	"testing"
+	"time"
 	"unsafe"
 )
 
@@ -258,4 +259,25 @@ func TestCycle(t *testing.T) {
 	iv := i.I().I().I().I().I().I().I().I().I().I()
 	*iv = *i
 	t.Logf("Example long interface cycle:\n%# v", Formatter(i))
+}
+
+type GoStringerStruct struct{
+	time.Time
+}
+
+func (t GoStringerStruct) GoString() string {
+	return t.Format("2006-01-02T15:04:05")
+}
+
+func TestWithStringer(t *testing.T) {
+	s := GoStringerStruct{time.Date(2015,1,1,0,0,0,0,time.Local)}
+
+	str := fmt.Sprintf("%# v", Formatter(s))
+	goString := "pretty.GoStringerStruct{\""+s.GoString()+"\"}"
+
+	if goString != str {
+		t.Errorf("expected %s, got %s", s.GoString(), str)
+	}
+
+	t.Log(str)
 }
