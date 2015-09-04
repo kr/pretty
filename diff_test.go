@@ -15,6 +15,7 @@ type S struct {
 	S *S
 	I interface{}
 	C []int
+	M map[string]int
 }
 
 var diffs = []difftest{
@@ -33,7 +34,10 @@ var diffs = []difftest{
 	{S{}, S{C: []int{1}}, []string{`C: []int[0] != []int[1]`}},
 	{S{C: []int{}}, S{C: []int{1}}, []string{`C: []int[0] != []int[1]`}},
 	{S{C: []int{1, 2, 3}}, S{C: []int{1, 2, 4}}, []string{`C[2]: 3 != 4`}},
-	{S{}, S{A: 1, S: new(S)}, []string{`A: 0 != 1`, `S: nil != &{0 <nil> <nil> []}`}},
+	{S{}, S{A: 1, S: new(S)}, []string{`A: 0 != 1`, `S: nil != &{0 <nil> <nil> [] map[]}`}},
+	{S{}, S{M:map[string]int{"a":2}}, []string{`M["a"]: (missing) != "<int Value>"`}},
+	{S{M:map[string]int{"a":2}}, S{}, []string{`M["a"]: "<int Value>" != (missing)`}},
+	{S{M:map[string]int{"a":1}}, S{M:map[string]int{"a":2}}, []string{`M["a"]: 1 != 2`}},
 }
 
 func TestDiff(t *testing.T) {
