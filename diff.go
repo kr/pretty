@@ -39,6 +39,9 @@ func (w diffWriter) printf(f string, a ...interface{}) {
 }
 
 func (w diffWriter) diff(av, bv reflect.Value) {
+	if !av.CanInterface() || !bv.CanInterface() {
+		return
+	}
 	if !av.IsValid() && bv.IsValid() {
 		w.printf("nil != %#v", bv.Interface())
 		return
