@@ -10,10 +10,6 @@ import (
 	"github.com/kr/text"
 )
 
-const (
-	limit = 50
-)
-
 type formatter struct {
 	x     interface{}
 	force bool
@@ -317,11 +313,6 @@ func (p *printer) fmtString(s string, quote bool) {
 		s = strconv.Quote(s)
 	}
 	io.WriteString(p, s)
-}
-
-func tryDeepEqual(a, b interface{}) bool {
-	defer func() { recover() }()
-	return reflect.DeepEqual(a, b)
 }
 
 func writeByte(w io.Writer, b byte) {
