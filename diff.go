@@ -119,13 +119,13 @@ func (w diffWriter) diff(av, bv reflect.Value) {
 	}
 }
 
-func (d diffWriter) relabel(name string) (d1 diffWriter) {
-	d1 = d
-	if d.l != "" && name[0] != '[' {
-		d1.l += "."
+func (w diffWriter) relabel(name string) diffWriter {
+	w1 := w
+	if w.l != "" && name[0] != '[' {
+		w1.l += "."
 	}
-	d1.l += name
-	return d1
+	w1.l += name
+	return w1
 }
 
 func keyDiff(a, b []reflect.Value) (ak, both, bk []reflect.Value) {
