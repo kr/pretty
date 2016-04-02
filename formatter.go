@@ -250,7 +250,16 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 			pp := *p
 			pp.depth++
 			writeByte(pp, '&')
-			pp.printValue(e, true, true)
+
+			if isAddressable(e) {
+				pp.printValue(e, true, true)
+			} else {
+				io.WriteString(p, "[]")
+				io.WriteString(p, e.Type().String())
+				writeByte(p, '{')
+				pp.printValue(e, true, true)
+				io.WriteString(p, "}[0]")
+			}
 		}
 	case reflect.Chan:
 		x := v.Pointer()
@@ -269,6 +278,14 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 	case reflect.Invalid:
 		io.WriteString(p, "nil")
 	}
+}
+
+func isAddressable(v reflect.Value) bool {
+	switch v.Kind() {
+	case reflect.Array, reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice, reflect.Struct:
+		return true
+	}
+	return false
 }
 
 func canInline(t reflect.Type) bool {
@@ -306,7 +323,7 @@ func canExpand(t reflect.Type) bool {
 
 func labelType(t reflect.Type) bool {
 	switch t.Kind() {
-	case reflect.Interface, reflect.Struct:
+	case reflect.Array, reflect.Interface, reflect.Slice, reflect.Struct:
 		return true
 	}
 	return false
