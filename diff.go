@@ -104,8 +104,9 @@ func (w diffWriter) diff(av, bv reflect.Value) bool {
 		// match and at least emit a general error.
 		if same && hasUnexported && !reflect.DeepEqual(av.Interface(), bv.Interface()) {
 			w.printf("unexported fields don't match")
-			return false
+			same = false
 		}
+		return same
 	case reflect.Slice:
 		lenA := av.Len()
 		lenB := bv.Len()
