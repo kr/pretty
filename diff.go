@@ -38,24 +38,24 @@ func (w diffWriter) printf(f string, a ...interface{}) {
 	fmt.Fprintf(w.w, l+f, a...)
 }
 
-func (w diffWriter) diff(av, bv reflect.Value) {
+func (w diffWriter) diff(av, bv reflect.Value) bool {
 	if !av.IsValid() && bv.IsValid() {
 		w.printf("nil != %#v", bv.Interface())
-		return
+		return false
 	}
 	if av.IsValid() && !bv.IsValid() {
 		w.printf("%#v != nil", av.Interface())
-		return
+		return false
 	}
 	if !av.IsValid() && !bv.IsValid() {
-		return
+		return true
 	}
 
 	at := av.Type()
 	bt := bv.Type()
 	if at != bt {
 		w.printf("%v != %v", at, bt)
-		return
+		return false
 	}
 
 	// numeric types, including bool
@@ -63,8 +63,9 @@ func (w diffWriter) diff(av, bv reflect.Value) {
 		a, b := av.Interface(), bv.Interface()
 		if a != b {
 			w.printf("%#v != %#v", a, b)
+			return false
 		}
-		return
+		return true
 	}
 
 	switch at.Kind() {
@@ -72,51 +73,83 @@ func (w diffWriter) diff(av, bv reflect.Value) {
 		a, b := av.Interface(), bv.Interface()
 		if a != b {
 			w.printf("%q != %q", a, b)
+			return false
 		}
 	case reflect.Ptr:
 		switch {
 		case av.IsNil() && !bv.IsNil():
 			w.printf("nil != %v", bv.Interface())
+			return false
 		case !av.IsNil() && bv.IsNil():
 			w.printf("%v != nil", av.Interface())
+			return false
 		case !av.IsNil() && !bv.IsNil():
-			w.diff(av.Elem(), bv.Elem())
+			return w.diff(av.Elem(), bv.Elem())
 		}
 	case reflect.Struct:
+		same := true
+		hasUnexported := false
 		for i := 0; i < av.NumField(); i++ {
-			w.relabel(at.Field(i).Name).diff(av.Field(i), bv.Field(i))
+			af := av.Field(i)
+			if af.CanInterface() {
+				if !w.relabel(at.Field(i).Name).diff(av.Field(i), bv.Field(i)) {
+					same = false
+				}
+			} else {
+				hasUnexported = true
+			}
 		}
+		// We can't print the value or specific field name any differing fields without resorting
+		// to some unsafe hackery, so we use reflect.DeepEqual to check if unexported fields don't
+		// match and at least emit a general error.
+		if same && hasUnexported && !reflect.DeepEqual(av.Interface(), bv.Interface()) {
+			w.printf("unexported fields don't match")
+			same = false
+		}
+		return same
 	case reflect.Slice:
 		lenA := av.Len()
 		lenB := bv.Len()
 		if lenA != lenB {
 			w.printf("%s[%d] != %s[%d]", av.Type(), lenA, bv.Type(), lenB)
-			break
+			return false
 		}
+		same := true
 		for i := 0; i < lenA; i++ {
-			w.relabel(fmt.Sprintf("[%d]", i)).diff(av.Index(i), bv.Index(i))
+			if !w.relabel(fmt.Sprintf("[%d]", i)).diff(av.Index(i), bv.Index(i)) {
+				same = false
+			}
 		}
+		return same
 	case reflect.Map:
+		same := true
 		ak, both, bk := keyDiff(av.MapKeys(), bv.MapKeys())
 		for _, k := range ak {
 			w := w.relabel(fmt.Sprintf("[%#v]", k.Interface()))
 			w.printf("%q != (missing)", av.MapIndex(k))
+			same = false
 		}
 		for _, k := range both {
 			w := w.relabel(fmt.Sprintf("[%#v]", k.Interface()))
-			w.diff(av.MapIndex(k), bv.MapIndex(k))
+			if !w.diff(av.MapIndex(k), bv.MapIndex(k)) {
+				same = false
+			}
 		}
 		for _, k := range bk {
 			w := w.relabel(fmt.Sprintf("[%#v]", k.Interface()))
 			w.printf("(missing) != %q", bv.MapIndex(k))
+			same = false
 		}
+		return same
 	case reflect.Interface:
-		w.diff(reflect.ValueOf(av.Interface()), reflect.ValueOf(bv.Interface()))
+		return w.diff(reflect.ValueOf(av.Interface()), reflect.ValueOf(bv.Interface()))
 	default:
 		if !reflect.DeepEqual(av.Interface(), bv.Interface()) {
 			w.printf("%# v != %# v", Formatter(av.Interface()), Formatter(bv.Interface()))
+			return false
 		}
 	}
+	return true
 }
 
 func (d diffWriter) relabel(name string) (d1 diffWriter) {
