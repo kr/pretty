@@ -25,7 +25,7 @@ func Diff(a, b interface{}) (desc []string) {
 type wprintfer struct{ w io.Writer }
 
 func (p *wprintfer) Printf(format string, a ...interface{}) {
-	fmt.Fprintf(p.w, format, a...)
+	fmt.Fprintf(p.w, format+"\n", a...)
 }
 
 // Fdiff writes to w a description of the differences between a and b.

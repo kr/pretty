@@ -142,7 +142,7 @@ func TestDiff(t *testing.T) {
 func TestFdiff(t *testing.T) {
 	var buf bytes.Buffer
 	Fdiff(&buf, 0, 1)
-	want := "0 != 1"
+	want := "0 != 1\n"
 	if got := buf.String(); got != want {
 		t.Errorf("Fdiff(0, 1) = %q want %q", got, want)
 	}
