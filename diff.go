@@ -44,6 +44,25 @@ func Pdiff(p Printfer, a, b interface{}) {
 	diffPrinter{w: p}.diff(reflect.ValueOf(a), reflect.ValueOf(b))
 }
 
+type Logfer interface {
+	Logf(format string, a ...interface{})
+}
+
+// logprintfer calls Fprintf on w for each Printf call
+// with a trailing newline.
+type logprintfer struct{ l Logfer }
+
+func (p *logprintfer) Printf(format string, a ...interface{}) {
+	p.l.Logf(format, a...)
+}
+
+// Ldiff prints to l a description of the differences between a and b.
+// It calls Logf once for each difference, with no trailing newline.
+// The standard library testing.T and testing.B are Logfers.
+func Ldiff(l Logfer, a, b interface{}) {
+	Pdiff(&logprintfer{l}, a, b)
+}
+
 type diffPrinter struct {
 	w Printfer
 	l string // label

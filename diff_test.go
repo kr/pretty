@@ -3,8 +3,15 @@ package pretty
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"testing"
 	"unsafe"
+)
+
+var (
+	_ Logfer   = (*testing.T)(nil)
+	_ Logfer   = (*testing.B)(nil)
+	_ Printfer = (*log.Logger)(nil)
 )
 
 type difftest struct {
