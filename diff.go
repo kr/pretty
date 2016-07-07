@@ -8,37 +8,56 @@ import (
 
 type sbuf []string
 
-func (s *sbuf) Write(b []byte) (int, error) {
-	*s = append(*s, string(b))
-	return len(b), nil
+func (p *sbuf) Printf(format string, a ...interface{}) {
+	s := fmt.Sprintf(format, a...)
+	*p = append(*p, s)
 }
 
 // Diff returns a slice where each element describes
 // a difference between a and b.
 func Diff(a, b interface{}) (desc []string) {
-	Fdiff((*sbuf)(&desc), a, b)
+	Pdiff((*sbuf)(&desc), a, b)
 	return desc
+}
+
+// wprintfer calls Fprintf on w for each Printf call
+// with a trailing newline.
+type wprintfer struct{ w io.Writer }
+
+func (p *wprintfer) Printf(format string, a ...interface{}) {
+	fmt.Fprintf(p.w, format, a...)
 }
 
 // Fdiff writes to w a description of the differences between a and b.
 func Fdiff(w io.Writer, a, b interface{}) {
-	diffWriter{w: w}.diff(reflect.ValueOf(a), reflect.ValueOf(b))
+	Pdiff(&wprintfer{w}, a, b)
 }
 
-type diffWriter struct {
-	w io.Writer
+type Printfer interface {
+	Printf(format string, a ...interface{})
+}
+
+// Pdiff prints to p a description of the differences between a and b.
+// It calls Printf once for each difference, with no trailing newline.
+// The standard library log.Logger is a Printfer.
+func Pdiff(p Printfer, a, b interface{}) {
+	diffPrinter{w: p}.diff(reflect.ValueOf(a), reflect.ValueOf(b))
+}
+
+type diffPrinter struct {
+	w Printfer
 	l string // label
 }
 
-func (w diffWriter) printf(f string, a ...interface{}) {
+func (w diffPrinter) printf(f string, a ...interface{}) {
 	var l string
 	if w.l != "" {
 		l = w.l + ": "
 	}
-	fmt.Fprintf(w.w, l+f, a...)
+	w.w.Printf(l+f, a...)
 }
 
-func (w diffWriter) diff(av, bv reflect.Value) {
+func (w diffPrinter) diff(av, bv reflect.Value) {
 	if !av.IsValid() && bv.IsValid() {
 		w.printf("nil != %# v", formatter{v: bv, quote: true})
 		return
@@ -136,7 +155,7 @@ func (w diffWriter) diff(av, bv reflect.Value) {
 	}
 }
 
-func (d diffWriter) relabel(name string) (d1 diffWriter) {
+func (d diffPrinter) relabel(name string) (d1 diffPrinter) {
 	d1 = d
 	if d.l != "" && name[0] != '[' {
 		d1.l += "."

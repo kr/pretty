@@ -1,6 +1,7 @@
 package pretty
 
 import (
+	"bytes"
 	"fmt"
 	"testing"
 	"unsafe"
@@ -135,6 +136,15 @@ func TestDiff(t *testing.T) {
 			diffdiff(t, got, tt.exp)
 			continue
 		}
+	}
+}
+
+func TestFdiff(t *testing.T) {
+	var buf bytes.Buffer
+	Fdiff(&buf, 0, 1)
+	want := "0 != 1"
+	if got := buf.String(); got != want {
+		t.Errorf("Fdiff(0, 1) = %q want %q", got, want)
 	}
 }
 
