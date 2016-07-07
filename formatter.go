@@ -15,7 +15,7 @@ const (
 )
 
 type formatter struct {
-	x     interface{}
+	v     reflect.Value
 	force bool
 	quote bool
 }
@@ -30,11 +30,11 @@ type formatter struct {
 // format x according to the usual rules of package fmt.
 // In particular, if x satisfies fmt.Formatter, then x.Format will be called.
 func Formatter(x interface{}) (f fmt.Formatter) {
-	return formatter{x: x, quote: true}
+	return formatter{v: reflect.ValueOf(x), quote: true}
 }
 
 func (fo formatter) String() string {
-	return fmt.Sprint(fo.x) // unwrap it
+	return fmt.Sprint(fo.v) // unwrap it
 }
 
 func (fo formatter) passThrough(f fmt.State, c rune) {
@@ -51,14 +51,14 @@ func (fo formatter) passThrough(f fmt.State, c rune) {
 		s += fmt.Sprintf(".%d", p)
 	}
 	s += string(c)
-	fmt.Fprintf(f, s, fo.x)
+	fmt.Fprintf(f, s, fo.v)
 }
 
 func (fo formatter) Format(f fmt.State, c rune) {
 	if fo.force || c == 'v' && f.Flag('#') && f.Flag(' ') {
 		w := tabwriter.NewWriter(f, 4, 4, 1, ' ', 0)
 		p := &printer{tw: w, Writer: w, visited: make(map[visit]int)}
-		p.printValue(reflect.ValueOf(fo.x), true, fo.quote)
+		p.printValue(fo.v, true, fo.quote)
 		w.Flush()
 		return
 	}

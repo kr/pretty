@@ -40,11 +40,11 @@ func (w diffWriter) printf(f string, a ...interface{}) {
 
 func (w diffWriter) diff(av, bv reflect.Value) {
 	if !av.IsValid() && bv.IsValid() {
-		w.printf("nil != %#v", bv.Interface())
+		w.printf("nil != %# v", formatter{v: bv, quote: true})
 		return
 	}
 	if av.IsValid() && !bv.IsValid() {
-		w.printf("%#v != nil", av.Interface())
+		w.printf("%# v != nil", formatter{v: av, quote: true})
 		return
 	}
 	if !av.IsValid() && !bv.IsValid() {
@@ -58,33 +58,60 @@ func (w diffWriter) diff(av, bv reflect.Value) {
 		return
 	}
 
-	// numeric types, including bool
-	if at.Kind() < reflect.Array {
-		a, b := av.Interface(), bv.Interface()
-		if a != b {
-			w.printf("%#v != %#v", a, b)
+	switch kind := at.Kind(); kind {
+	case reflect.Bool:
+		if a, b := av.Bool(), bv.Bool(); a != b {
+			w.printf("%v != %v", a, b)
 		}
-		return
-	}
-
-	switch at.Kind() {
-	case reflect.String:
-		a, b := av.Interface(), bv.Interface()
-		if a != b {
-			w.printf("%q != %q", a, b)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		if a, b := av.Int(), bv.Int(); a != b {
+			w.printf("%d != %d", a, b)
+		}
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		if a, b := av.Uint(), bv.Uint(); a != b {
+			w.printf("%d != %d", a, b)
+		}
+	case reflect.Float32, reflect.Float64:
+		if a, b := av.Float(), bv.Float(); a != b {
+			w.printf("%v != %v", a, b)
+		}
+	case reflect.Complex64, reflect.Complex128:
+		if a, b := av.Complex(), bv.Complex(); a != b {
+			w.printf("%v != %v", a, b)
+		}
+	case reflect.Array:
+		n := av.Len()
+		for i := 0; i < n; i++ {
+			w.relabel(fmt.Sprintf("[%d]", i)).diff(av.Index(i), bv.Index(i))
+		}
+	case reflect.Chan, reflect.Func, reflect.UnsafePointer:
+		if a, b := av.Pointer(), bv.Pointer(); a != b {
+			w.printf("%#x != %#x", a, b)
+		}
+	case reflect.Interface:
+		w.diff(av.Elem(), bv.Elem())
+	case reflect.Map:
+		ak, both, bk := keyDiff(av.MapKeys(), bv.MapKeys())
+		for _, k := range ak {
+			w := w.relabel(fmt.Sprintf("[%#v]", k))
+			w.printf("%q != (missing)", av.MapIndex(k))
+		}
+		for _, k := range both {
+			w := w.relabel(fmt.Sprintf("[%#v]", k))
+			w.diff(av.MapIndex(k), bv.MapIndex(k))
+		}
+		for _, k := range bk {
+			w := w.relabel(fmt.Sprintf("[%#v]", k))
+			w.printf("(missing) != %q", bv.MapIndex(k))
 		}
 	case reflect.Ptr:
 		switch {
 		case av.IsNil() && !bv.IsNil():
-			w.printf("nil != %v", bv.Interface())
+			w.printf("nil != %# v", formatter{v: bv, quote: true})
 		case !av.IsNil() && bv.IsNil():
-			w.printf("%v != nil", av.Interface())
+			w.printf("%# v != nil", formatter{v: av, quote: true})
 		case !av.IsNil() && !bv.IsNil():
 			w.diff(av.Elem(), bv.Elem())
-		}
-	case reflect.Struct:
-		for i := 0; i < av.NumField(); i++ {
-			w.relabel(at.Field(i).Name).diff(av.Field(i), bv.Field(i))
 		}
 	case reflect.Slice:
 		lenA := av.Len()
@@ -96,26 +123,16 @@ func (w diffWriter) diff(av, bv reflect.Value) {
 		for i := 0; i < lenA; i++ {
 			w.relabel(fmt.Sprintf("[%d]", i)).diff(av.Index(i), bv.Index(i))
 		}
-	case reflect.Map:
-		ak, both, bk := keyDiff(av.MapKeys(), bv.MapKeys())
-		for _, k := range ak {
-			w := w.relabel(fmt.Sprintf("[%#v]", k.Interface()))
-			w.printf("%q != (missing)", av.MapIndex(k))
+	case reflect.String:
+		if a, b := av.String(), bv.String(); a != b {
+			w.printf("%q != %q", a, b)
 		}
-		for _, k := range both {
-			w := w.relabel(fmt.Sprintf("[%#v]", k.Interface()))
-			w.diff(av.MapIndex(k), bv.MapIndex(k))
+	case reflect.Struct:
+		for i := 0; i < av.NumField(); i++ {
+			w.relabel(at.Field(i).Name).diff(av.Field(i), bv.Field(i))
 		}
-		for _, k := range bk {
-			w := w.relabel(fmt.Sprintf("[%#v]", k.Interface()))
-			w.printf("(missing) != %q", bv.MapIndex(k))
-		}
-	case reflect.Interface:
-		w.diff(reflect.ValueOf(av.Interface()), reflect.ValueOf(bv.Interface()))
 	default:
-		if !reflect.DeepEqual(av.Interface(), bv.Interface()) {
-			w.printf("%# v != %# v", Formatter(av.Interface()), Formatter(bv.Interface()))
-		}
+		panic("unknown reflect Kind: " + kind.String())
 	}
 }
 
@@ -128,11 +145,26 @@ func (d diffWriter) relabel(name string) (d1 diffWriter) {
 	return d1
 }
 
+// keyEqual compares a and b for equality.
+// Both a and b must be valid map keys.
+func keyEqual(a, b reflect.Value) bool {
+	if a.Type() != b.Type() {
+		return false
+	}
+	switch kind := a.Kind(); kind {
+	case reflect.Int:
+		a, b := a.Int(), b.Int()
+		return a == b
+	default:
+		panic("invalid map reflect Kind: " + kind.String())
+	}
+}
+
 func keyDiff(a, b []reflect.Value) (ak, both, bk []reflect.Value) {
 	for _, av := range a {
 		inBoth := false
 		for _, bv := range b {
-			if reflect.DeepEqual(av.Interface(), bv.Interface()) {
+			if keyEqual(av, bv) {
 				inBoth = true
 				both = append(both, av)
 				break
@@ -145,7 +177,7 @@ func keyDiff(a, b []reflect.Value) (ak, both, bk []reflect.Value) {
 	for _, bv := range b {
 		inBoth := false
 		for _, av := range a {
-			if reflect.DeepEqual(av.Interface(), bv.Interface()) {
+			if keyEqual(av, bv) {
 				inBoth = true
 				break
 			}
