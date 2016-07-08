@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"reflect"
 	"testing"
 	"unsafe"
 )
@@ -115,7 +116,6 @@ var diffs = []difftest{
 	{struct{ x string }{"a"}, struct{ x string }{"b"}, []string{`x: "a" != "b"`}},
 	{struct{ x N }{N{0}}, struct{ x N }{N{0}}, nil},
 	{struct{ x N }{N{0}}, struct{ x N }{N{1}}, []string{`x.N: 0 != 1`}},
-
 	{
 		struct{ x unsafe.Pointer }{unsafe.Pointer(uintptr(0))},
 		struct{ x unsafe.Pointer }{unsafe.Pointer(uintptr(0))},
@@ -142,6 +142,44 @@ func TestDiff(t *testing.T) {
 			t.Errorf("with    % #v", tt.b)
 			diffdiff(t, got, tt.exp)
 			continue
+		}
+	}
+}
+
+func TestKeyEqual(t *testing.T) {
+	var emptyInterfaceZero interface{} = 0
+
+	cases := []interface{}{
+		new(bool),
+		new(int),
+		new(int8),
+		new(int16),
+		new(int32),
+		new(int64),
+		new(uint),
+		new(uint8),
+		new(uint16),
+		new(uint32),
+		new(uint64),
+		new(uintptr),
+		new(float32),
+		new(float64),
+		new(complex64),
+		new(complex128),
+		new([1]int),
+		new(chan int),
+		new(unsafe.Pointer),
+		new(interface{}),
+		&emptyInterfaceZero,
+		new(*int),
+		new(string),
+		new(struct{ int }),
+	}
+
+	for _, test := range cases {
+		rv := reflect.ValueOf(test).Elem()
+		if !keyEqual(rv, rv) {
+			t.Errorf("keyEqual(%s, %s) = false want true", rv.Type(), rv.Type())
 		}
 	}
 }

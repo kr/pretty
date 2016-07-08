@@ -185,16 +185,53 @@ func (d diffPrinter) relabel(name string) (d1 diffPrinter) {
 
 // keyEqual compares a and b for equality.
 // Both a and b must be valid map keys.
-func keyEqual(a, b reflect.Value) bool {
-	if a.Type() != b.Type() {
+func keyEqual(av, bv reflect.Value) bool {
+	if !av.IsValid() && !bv.IsValid() {
+		return true
+	}
+	if !av.IsValid() || !bv.IsValid() || av.Type() != bv.Type() {
 		return false
 	}
-	switch kind := a.Kind(); kind {
-	case reflect.Int:
-		a, b := a.Int(), b.Int()
+	switch kind := av.Kind(); kind {
+	case reflect.Bool:
+		a, b := av.Bool(), bv.Bool()
 		return a == b
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		a, b := av.Int(), bv.Int()
+		return a == b
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		a, b := av.Uint(), bv.Uint()
+		return a == b
+	case reflect.Float32, reflect.Float64:
+		a, b := av.Float(), bv.Float()
+		return a == b
+	case reflect.Complex64, reflect.Complex128:
+		a, b := av.Complex(), bv.Complex()
+		return a == b
+	case reflect.Array:
+		for i := 0; i < av.Len(); i++ {
+			if !keyEqual(av.Index(i), bv.Index(i)) {
+				return false
+			}
+		}
+		return true
+	case reflect.Chan, reflect.UnsafePointer, reflect.Ptr:
+		a, b := av.Pointer(), bv.Pointer()
+		return a == b
+	case reflect.Interface:
+		return keyEqual(av.Elem(), bv.Elem())
+	case reflect.String:
+		a, b := av.String(), bv.String()
+		return a == b
+	case reflect.Struct:
+		for i := 0; i < av.NumField(); i++ {
+			if !keyEqual(av.Field(i), bv.Field(i)) {
+				return false
+			}
+		}
+		return true
 	default:
-		panic("invalid map reflect Kind: " + kind.String())
+		panic("invalid map key type " + av.Type().String())
 	}
 }
 
