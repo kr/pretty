@@ -35,6 +35,24 @@ func (f F) Format(s fmt.State, c rune) {
 
 var long = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
+type Embedded struct {
+	Foo string `json:"foo"`
+	Bar struct {
+		A int     `json:"a"`
+		B float64 `json:"b"`
+		C string  `json:"c"`
+	} `json:"bar"`
+}
+
+var embedded Embedded
+
+func init() {
+	embedded.Foo = "foo"
+	embedded.Bar.A = 1
+	embedded.Bar.B = 1.1
+	embedded.Bar.C = "bar"
+}
+
 var gosyntax = []test{
 	{nil, `nil`},
 	{"", `""`},
@@ -132,6 +150,13 @@ var gosyntax = []test{
         longFieldName:      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
         otherLongFieldName: nil,
     },
+}`,
+	},
+	{
+		&embedded,
+		`&pretty.Embedded{
+    Foo: "foo",
+    Bar: struct{A:1, B:1.1, C:"bar"},
 }`,
 	},
 }
