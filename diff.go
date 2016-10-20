@@ -37,6 +37,11 @@ type Printfer interface {
 	Printf(format string, a ...interface{})
 }
 
+// Diffable is the interface that gives a chance to return custom value for diff
+type Diffable interface {
+	DiffValue() interface{}
+}
+
 // Pdiff prints to p a description of the differences between a and b.
 // It calls Printf once for each difference, with no trailing newline.
 // The standard library log.Logger is a Printfer.
@@ -77,6 +82,17 @@ func (w diffPrinter) printf(f string, a ...interface{}) {
 }
 
 func (w diffPrinter) diff(av, bv reflect.Value) {
+	if av.IsValid() && av.CanInterface() {
+		if diffable, ok := av.Interface().(Diffable); ok {
+			av = reflect.ValueOf(diffable.DiffValue())
+		}
+	}
+	if bv.IsValid() && bv.CanInterface() {
+		if diffable, ok := bv.Interface().(Diffable); ok {
+			bv = reflect.ValueOf(diffable.DiffValue())
+		}
+	}
+
 	if !av.IsValid() && bv.IsValid() {
 		w.printf("nil != %# v", formatter{v: bv, quote: true})
 		return
