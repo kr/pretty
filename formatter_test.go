@@ -28,6 +28,25 @@ type SA struct {
 	v T
 }
 
+type Addressable struct {
+	b *bool
+	i *int
+	i8 *int8
+	i16 *int16
+	i32 *int32
+	i64 *int64
+	u *uint
+	u8 *uint8
+	u16 *uint16
+	u32 *uint32
+	u64 *uint64
+	f32 *float32
+	f64 *float64
+	c64 *complex64
+	c128 *complex128
+	s *string
+}
+
 type T struct {
 	x, y int
 }
@@ -159,6 +178,44 @@ var gosyntax = []test{
         longFieldName:      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
         otherLongFieldName: nil,
     },
+}`,
+	},
+	{
+		Addressable{
+			b: &[]bool{bool(true)}[0],
+			i: &[]int{int(4)}[0],
+			i8: &[]int8{int8(4)}[0],
+			i16: &[]int16{int16(4)}[0],
+			i32: &[]int32{int32(4)}[0],
+			i64: &[]int64{int64(4)}[0],
+			u: &[]uint{uint(4)}[0],
+			u8: &[]uint8{uint8(4)}[0],
+			u16: &[]uint16{uint16(4)}[0],
+			u32: &[]uint32{uint32(4)}[0],
+			u64: &[]uint64{uint64(4)}[0],
+			f32: &[]float32{float32(4.2)}[0],
+			f64: &[]float64{float64(4.2)}[0],
+			c64: &[]complex64{(4+2i)}[0],
+			c128: &[]complex128{(4+2i)}[0],
+			s: &[]string{"Some string constant."}[0],
+		},
+		`pretty.Addressable{
+    b:    &[]bool{bool(true)}[0],
+    i:    &[]int{int(4)}[0],
+    i8:   &[]int8{int8(4)}[0],
+    i16:  &[]int16{int16(4)}[0],
+    i32:  &[]int32{int32(4)}[0],
+    i64:  &[]int64{int64(4)}[0],
+    u:    &[]uint{uint(0x4)}[0],
+    u8:   &[]uint8{uint8(0x4)}[0],
+    u16:  &[]uint16{uint16(0x4)}[0],
+    u32:  &[]uint32{uint32(0x4)}[0],
+    u64:  &[]uint64{uint64(0x4)}[0],
+    f32:  &[]float32{float32(4.199999809265137)}[0],
+    f64:  &[]float64{float64(4.2)}[0],
+    c64:  &[]complex64{(4+2i)}[0],
+    c128: &[]complex128{(4+2i)}[0],
+    s:    &[]string{"Some string constant."}[0],
 }`,
 	},
 }
