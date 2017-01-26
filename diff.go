@@ -41,7 +41,7 @@ type Printfer interface {
 // It calls Printf once for each difference, with no trailing newline.
 // The standard library log.Logger is a Printfer.
 func Pdiff(p Printfer, a, b interface{}) {
-	diffPrinter{w: p}.diff(reflect.ValueOf(a), reflect.ValueOf(b))
+	diffPrinter{w: p, visited: make(map[diffVisit]bool)}.diff(reflect.ValueOf(a), reflect.ValueOf(b))
 }
 
 type Logfer interface {
@@ -63,9 +63,15 @@ func Ldiff(l Logfer, a, b interface{}) {
 	Pdiff(&logprintfer{l}, a, b)
 }
 
+type diffVisit struct {
+	a reflect.Value
+	b reflect.Value
+}
+
 type diffPrinter struct {
-	w Printfer
-	l string // label
+	w       Printfer
+	l       string // label
+	visited map[diffVisit]bool
 }
 
 func (w diffPrinter) printf(f string, a ...interface{}) {
@@ -149,6 +155,12 @@ func (w diffPrinter) diff(av, bv reflect.Value) {
 		case !av.IsNil() && bv.IsNil():
 			w.printf("%# v != nil", formatter{v: av, quote: true})
 		case !av.IsNil() && !bv.IsNil():
+			v := diffVisit{av, bv}
+			if w.visited[v] {
+				w.printf("CYCLIC REFERENCE")
+				return
+			}
+			w.visited[v] = true
 			w.diff(av.Elem(), bv.Elem())
 		}
 	case reflect.Slice:

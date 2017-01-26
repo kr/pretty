@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"strings"
 	"testing"
 	"unsafe"
 )
@@ -190,6 +191,20 @@ func TestFdiff(t *testing.T) {
 	want := "0 != 1\n"
 	if got := buf.String(); got != want {
 		t.Errorf("Fdiff(0, 1) = %q want %q", got, want)
+	}
+}
+
+func TestDiffCycle(t *testing.T) {
+	var buf bytes.Buffer
+	type node struct{ next *node }
+	a := node{}
+	b := node{}
+	a.next = &b
+	b.next = &a
+	Fdiff(&buf, a, b)
+	t.Log(buf.String())
+	if got := buf.String(); !strings.Contains(got, "CYCLIC") {
+		t.Errorf("Cyclic reference not detected, got %q", got)
 	}
 }
 
