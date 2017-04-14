@@ -30,7 +30,7 @@ func Fprintf(w io.Writer, format string, a ...interface{}) (n int, error error) 
 	return fmt.Fprintf(w, format, wrap(a, false)...)
 }
 
-// Log is a convenience wrapper for log.Printf.
+// Log is a convenience wrapper for log.Print.
 //
 // Calling Log(x, y) is equivalent to
 // log.Print(Formatter(x), Formatter(y)), but each operand is
@@ -39,21 +39,21 @@ func Log(a ...interface{}) {
 	log.Print(wrap(a, true)...)
 }
 
-// Logf is a convenience wrapper for log.Printf.
-//
-// Calling Logf(f, x, y) is equivalent to
-// log.Printf(f, Formatter(x), Formatter(y)).
-func Logf(format string, a ...interface{}) {
-	log.Printf(format, wrap(a, false)...)
-}
-
-// Logln is a convenience wrapper for log.Printf.
+// Logln is a convenience wrapper for log.Println.
 //
 // Calling Logln(x, y) is equivalent to
 // log.Println(Formatter(x), Formatter(y)), but each operand is
 // formatted with "%# v".
 func Logln(a ...interface{}) {
 	log.Println(wrap(a, true)...)
+}
+
+// Logf is a convenience wrapper for log.Printf.
+//
+// Calling Logf(f, x, y) is equivalent to
+// log.Printf(f, Formatter(x), Formatter(y)).
+func Logf(format string, a ...interface{}) {
+	log.Printf(format, wrap(a, false)...)
 }
 
 // Print pretty-prints its operands and writes to standard output.
@@ -65,14 +65,6 @@ func Print(a ...interface{}) (n int, errno error) {
 	return fmt.Print(wrap(a, true)...)
 }
 
-// Printf is a convenience wrapper for fmt.Printf.
-//
-// Calling Printf(f, x, y) is equivalent to
-// fmt.Printf(f, Formatter(x), Formatter(y)).
-func Printf(format string, a ...interface{}) (n int, errno error) {
-	return fmt.Printf(format, wrap(a, false)...)
-}
-
 // Println pretty-prints its operands and writes to standard output.
 //
 // Calling Print(x, y) is equivalent to
@@ -80,6 +72,14 @@ func Printf(format string, a ...interface{}) (n int, errno error) {
 // formatted with "%# v".
 func Println(a ...interface{}) (n int, errno error) {
 	return fmt.Println(wrap(a, true)...)
+}
+
+// Printf is a pretty-print convenience wrapper for fmt.Printf.
+//
+// Calling Printf(f, x, y) is equivalent to
+// fmt.Printf(f, Formatter(x), Formatter(y)).
+func Printf(format string, a ...interface{}) (n int, errno error) {
+	return fmt.Printf(format, wrap(a, false)...)
 }
 
 // Sprint is a convenience wrapper for fmt.Sprintf.
