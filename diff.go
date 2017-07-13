@@ -158,8 +158,15 @@ func (w diffPrinter) diff(av, bv reflect.Value) {
 			w.printf("%s[%d] != %s[%d]", av.Type(), lenA, bv.Type(), lenB)
 			break
 		}
-		for i := 0; i < lenA; i++ {
-			w.relabel(fmt.Sprintf("[%d]", i)).diff(av.Index(i), bv.Index(i))
+		switch {
+		case av.IsNil() && !bv.IsNil():
+			w.printf("nil != %# v", formatter{v: bv, quote: true})
+		case !av.IsNil() && bv.IsNil():
+			w.printf("%# v != nil", formatter{v: av, quote: true})
+		default:
+			for i := 0; i < lenA; i++ {
+				w.relabel(fmt.Sprintf("[%d]", i)).diff(av.Index(i), bv.Index(i))
+			}
 		}
 	case reflect.String:
 		if a, b := av.String(), bv.String(); a != b {
