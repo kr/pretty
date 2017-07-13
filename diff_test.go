@@ -116,6 +116,7 @@ var diffs = []difftest{
 	{struct{ x string }{"a"}, struct{ x string }{"b"}, []string{`x: "a" != "b"`}},
 	{struct{ x N }{N{0}}, struct{ x N }{N{0}}, nil},
 	{struct{ x N }{N{0}}, struct{ x N }{N{1}}, []string{`x.N: 0 != 1`}},
+	{struct{ x []int }{[]int{}}, struct{ x []int }{nil}, []string{`x: []int{} != nil`}},
 	{
 		struct{ x unsafe.Pointer }{unsafe.Pointer(uintptr(0))},
 		struct{ x unsafe.Pointer }{unsafe.Pointer(uintptr(0))},
