@@ -92,7 +92,7 @@ func (w diffPrinter) diff(av, bv reflect.Value) {
 	at := av.Type()
 	bt := bv.Type()
 	if at != bt {
-		w.printf("%v != %v", at, bt)
+		w.printf("%v (type %s) != %v (type %s)", at, at, bt, bt)
 		return
 	}
 
