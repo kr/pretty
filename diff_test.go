@@ -40,6 +40,8 @@ var (
 	f1 = func() {}
 	i0 = 0
 	i1 = 1
+	s0 []int
+	m0 map[int]int
 )
 
 var diffs = []difftest{
@@ -126,6 +128,8 @@ var diffs = []difftest{
 		struct{ x unsafe.Pointer }{unsafe.Pointer(uintptr(1))},
 		[]string{`x: 0x0 != 0x1`},
 	},
+	{[]int{}, s0, []string{"[]int{} != []int(nil)"}},
+	{map[int]int{}, m0, []string{"map[int]int{} != map[int]int(nil)"}},
 }
 
 func TestDiff(t *testing.T) {

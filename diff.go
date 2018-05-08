@@ -142,6 +142,10 @@ func (w diffPrinter) diff(av, bv reflect.Value) {
 			w := w.relabel(fmt.Sprintf("[%#v]", k))
 			w.printf("(missing) != %q", bv.MapIndex(k))
 		}
+		if av.IsNil() != bv.IsNil() {
+			w.printf("%#v != %#v", av, bv)
+			break
+		}
 	case reflect.Ptr:
 		switch {
 		case av.IsNil() && !bv.IsNil():
@@ -160,6 +164,10 @@ func (w diffPrinter) diff(av, bv reflect.Value) {
 		}
 		for i := 0; i < lenA; i++ {
 			w.relabel(fmt.Sprintf("[%d]", i)).diff(av.Index(i), bv.Index(i))
+		}
+		if av.IsNil() != bv.IsNil() {
+			w.printf("%#v != %#v", av, bv)
+			break
 		}
 	case reflect.String:
 		if a, b := av.String(), bv.String(); a != b {
