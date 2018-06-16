@@ -38,7 +38,7 @@ func (f F) Format(s fmt.State, c rune) {
 	fmt.Fprintf(s, "F(%d)", int(f))
 }
 
-type Stringer struct { i int }
+type Stringer struct{ i int }
 
 func (s *Stringer) String() string { return "foo" }
 
