@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 	"testing"
+	"time"
 	"unsafe"
 )
 
@@ -285,4 +286,47 @@ func TestCycle(t *testing.T) {
 	iv := i.I().I().I().I().I().I().I().I().I().I()
 	*iv = *i
 	t.Logf("Example long interface cycle:\n%# v", Formatter(i))
+}
+
+func Test(t *testing.T) {
+	date := time.Date(2006, 1, 2, 3, 4, 5, .678901e9, time.Local)
+
+	s := fmt.Sprintf("%s", Formatter(date))
+
+	if date.String() != s {
+		t.Errorf("expected %s, got %s", date.String(), s)
+	}
+}
+
+type StringerStruct struct{}
+
+func (t StringerStruct) String() string {
+	return "StringerStruct"
+}
+
+func TestStringer(t *testing.T) {
+	s := new(StringerStruct)
+
+	str := fmt.Sprintf("%s", Formatter(s))
+
+	if s.String() != str {
+		t.Errorf("expected %s, got %s", s.String(), str)
+	}
+}
+
+type MarshalTextStruct struct{}
+
+func (t MarshalTextStruct) MarshalText() ([]byte, error) {
+	return []byte("MarshalTextStruct"), nil
+}
+
+func TestMarshalTextStruct(t *testing.T) {
+	s := new(MarshalTextStruct)
+
+	m, _ := s.MarshalText()
+	str := fmt.Sprintf("%s", Formatter(m))
+
+	if string(m) != str {
+		t.Errorf("expected %s, got %s", m, str)
+	}
 }
