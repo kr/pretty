@@ -146,6 +146,60 @@ func TestDiff(t *testing.T) {
 	}
 }
 
+type A struct {
+	vB1 *B
+	vB2 *B
+}
+
+type B struct {
+	TheA *A
+	N    string
+}
+
+func TestDiffWithCycles(t *testing.T) {
+	v1 := &A{}
+	v11 := &B{TheA: v1}
+	v1.vB1 = v11
+
+	v2 := &A{}
+	v21 := &B{TheA: v2}
+	v2.vB1 = v21
+
+	got := Diff(v1, v2)
+	if len(got) > 0 {
+		t.Errorf("diffing % #v", v1)
+		t.Errorf("with    % #v", v2)
+		diffdiff(t, got, nil)
+	}
+
+	v1 = &A{}
+	v2 = &A{}
+	v11 = &B{TheA: v2}
+	v21 = &B{TheA: v1}
+	v1.vB1 = v11
+	v2.vB1 = v21
+
+	got = Diff(v1, v2)
+	if len(got) > 0 {
+		t.Errorf("diffing % #v", v1)
+		t.Errorf("with    % #v", v2)
+		diffdiff(t, got, nil)
+	}
+
+	b1 := &B{N: ""}
+	b2 := &B{N: "foo"}
+	v1 = &A{vB1: b1, vB2: b1}
+	v2 = &A{vB1: b1, vB2: b2}
+	got = Diff(v1, v2)
+
+	exp := `vB2.N: "" != "foo"`
+	if len(got) == 0 || got[0] != exp {
+		t.Errorf("diffing % #v", v1)
+		t.Errorf("with    % #v", v2)
+		diffdiff(t, got, []string{exp})
+	}
+}
+
 func TestKeyEqual(t *testing.T) {
 	var emptyInterfaceZero interface{} = 0
 

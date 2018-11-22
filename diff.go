@@ -41,7 +41,7 @@ type Printfer interface {
 // It calls Printf once for each difference, with no trailing newline.
 // The standard library log.Logger is a Printfer.
 func Pdiff(p Printfer, a, b interface{}) {
-	diffPrinter{w: p}.diff(reflect.ValueOf(a), reflect.ValueOf(b))
+	diffPrinter{w: p, visited: make(map[visit]int)}.diff(reflect.ValueOf(a), reflect.ValueOf(b))
 }
 
 type Logfer interface {
@@ -64,8 +64,10 @@ func Ldiff(l Logfer, a, b interface{}) {
 }
 
 type diffPrinter struct {
-	w Printfer
-	l string // label
+	w       Printfer
+	l       string // label
+	visited map[visit]int
+	depth   int
 }
 
 func (w diffPrinter) printf(f string, a ...interface{}) {
@@ -127,6 +129,9 @@ func (w diffPrinter) diff(av, bv reflect.Value) {
 			w.printf("%#x != %#x", a, b)
 		}
 	case reflect.Interface:
+		if av.Elem().IsValid() {
+			w.depth++
+		}
 		w.diff(av.Elem(), bv.Elem())
 	case reflect.Map:
 		ak, both, bk := keyDiff(av.MapKeys(), bv.MapKeys())
@@ -143,6 +148,9 @@ func (w diffPrinter) diff(av, bv reflect.Value) {
 			w.printf("(missing) != %q", bv.MapIndex(k))
 		}
 	case reflect.Ptr:
+		if av.Elem().IsValid() {
+			w.depth++
+		}
 		switch {
 		case av.IsNil() && !bv.IsNil():
 			w.printf("nil != %# v", formatter{v: bv, quote: true})
@@ -166,6 +174,17 @@ func (w diffPrinter) diff(av, bv reflect.Value) {
 			w.printf("%q != %q", a, b)
 		}
 	case reflect.Struct:
+		// prevent infinite recursion on cyclic references. it's enough to check
+		// just one side of the diff comparison to detect the cycle and break it.
+		if av.CanAddr() {
+			addr := av.UnsafeAddr()
+			vis := visit{addr, av.Type()}
+			if vd, ok := w.visited[vis]; ok && vd < w.depth {
+				break
+			}
+			w.visited[vis] = w.depth
+		}
+
 		for i := 0; i < av.NumField(); i++ {
 			w.relabel(at.Field(i).Name).diff(av.Field(i), bv.Field(i))
 		}
