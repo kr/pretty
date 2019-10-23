@@ -31,7 +31,12 @@ type S struct {
 type (
 	N struct{ N int }
 	E interface{}
+	D struct{ a string }
 )
+
+func (d D) DiffValue() interface{} {
+	return d.a
+}
 
 var (
 	c0 = make(chan int)
@@ -59,6 +64,8 @@ var diffs = []difftest{
 	{S{C: []int{}}, S{C: []int{1}}, []string{`C: []int[0] != []int[1]`}},
 	{S{C: []int{1, 2, 3}}, S{C: []int{1, 2, 4}}, []string{`C[2]: 3 != 4`}},
 	{S{}, S{A: 1, S: new(S)}, []string{`A: 0 != 1`, `S: nil != &pretty.S{}`}},
+	{D{a: "a"}, D{a: "b"}, []string{`"a" != "b"`}},
+	{struct{ D D }{D{"a"}}, struct{ D D }{D{"b"}}, []string{`D: "a" != "b"`}},
 
 	// unexported fields of every reflect.Kind (both equal and unequal)
 	{struct{ x bool }{false}, struct{ x bool }{false}, nil},
