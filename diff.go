@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"unicode"
 )
 
 type sbuf []string
@@ -20,6 +21,11 @@ func Diff(a, b interface{}) (desc []string) {
 	return desc
 }
 
+func UnexpDiff(a, b interface{}) (desc []string) {
+	UnexpPdiff((*sbuf)(&desc), a, b)
+	return desc
+}
+
 // wprintfer calls Fprintf on w for each Printf call
 // with a trailing newline.
 type wprintfer struct{ w io.Writer }
@@ -33,6 +39,10 @@ func Fdiff(w io.Writer, a, b interface{}) {
 	Pdiff(&wprintfer{w}, a, b)
 }
 
+func UnexpFdiff(w io.Writer, a, b interface{}) {
+	UnexpPdiff(&wprintfer{w}, a, b)
+}
+
 type Printfer interface {
 	Printf(format string, a ...interface{})
 }
@@ -42,6 +52,10 @@ type Printfer interface {
 // The standard library log.Logger is a Printfer.
 func Pdiff(p Printfer, a, b interface{}) {
 	diffPrinter{w: p}.diff(reflect.ValueOf(a), reflect.ValueOf(b))
+}
+
+func UnexpPdiff(p Printfer, a, b interface{}) {
+	diffPrinter{w: p, unexp: true}.diff(reflect.ValueOf(a), reflect.ValueOf(b))
 }
 
 type Logfer interface {
@@ -63,9 +77,14 @@ func Ldiff(l Logfer, a, b interface{}) {
 	Pdiff(&logprintfer{l}, a, b)
 }
 
+func UnexpLdiff(l Logfer, a, b interface{}) {
+	UnexpPdiff(&logprintfer{l}, a, b)
+}
+
 type diffPrinter struct {
-	w Printfer
-	l string // label
+	w     Printfer
+	l     string // label
+	unexp bool
 }
 
 func (w diffPrinter) printf(f string, a ...interface{}) {
@@ -167,7 +186,9 @@ func (w diffPrinter) diff(av, bv reflect.Value) {
 		}
 	case reflect.Struct:
 		for i := 0; i < av.NumField(); i++ {
-			w.relabel(at.Field(i).Name).diff(av.Field(i), bv.Field(i))
+			if (w.unexp && unicode.IsUpper(rune(at.Field(i).Name[0]))) || !w.unexp {
+				w.relabel(at.Field(i).Name).diff(av.Field(i), bv.Field(i))
+			}
 		}
 	default:
 		panic("unknown reflect Kind: " + kind.String())
