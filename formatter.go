@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"runtime"
+	"sort"
 	"strconv"
 	"text/tabwriter"
 
@@ -37,7 +39,7 @@ func (fo formatter) passThrough(f fmt.State, c rune) {
 	s := "%"
 	for i := 0; i < 128; i++ {
 		if f.Flag(i) {
-			s += string(i)
+			s += string(rune(i))
 		}
 	}
 	if w, ok := f.Width(); ok {
@@ -117,23 +119,22 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 		}
 		writeByte(p, '{')
 		if nonzero(v) {
-			expand := !canInline(v.Type())
+			expand := !canInline(v.Type()) || v.Len() > 2
 			pp := p
 			if expand {
 				writeByte(p, '\n')
 				pp = p.indent()
 			}
-			keys := v.MapKeys()
-			for i := 0; i < v.Len(); i++ {
-				showTypeInStruct := true
-				k := keys[i]
+			keys := sortableValues(v.MapKeys())
+			sort.Sort(keys)
+			for i, k := range keys {
 				mv := v.MapIndex(k)
 				pp.printValue(k, false, true)
 				writeByte(pp, ':')
 				if expand {
 					writeByte(pp, '\t')
 				}
-				showTypeInStruct = t.Elem().Kind() == reflect.Interface
+				showTypeInStruct := t.Elem().Kind() == reflect.Interface
 				pp.printValue(mv, showTypeInStruct, true)
 				if expand {
 					io.WriteString(pp, ",\n")
@@ -265,6 +266,84 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 	case reflect.Invalid:
 		io.WriteString(p, "nil")
 	}
+}
+
+// sortableValues implement sort.Interface for reflect.Value to sort map keys.
+type sortableValues []reflect.Value
+
+func (s sortableValues) Len() int           { return len(s) }
+func (s sortableValues) Less(i, j int) bool { return less(s[i], s[j]) }
+func (s sortableValues) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+
+func less(i, j reflect.Value) bool {
+	kind := i.Kind()
+	if kind != j.Kind() {
+		panic("different kinds in same slice, unexpected")
+	}
+	switch i.Kind() {
+	case reflect.Bool:
+		return !i.Bool() && j.Bool()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return i.Int() < j.Int()
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return i.Uint() < j.Uint()
+	case reflect.Float32, reflect.Float64:
+		return i.Float() < j.Float()
+	case reflect.Complex64, reflect.Complex128:
+		ii := i.Complex()
+		jj := j.Complex()
+		if real(ii) < real(jj) {
+			return true
+		}
+		if real(ii) > real(jj) {
+			return false
+		}
+		return imag(ii) < imag(jj)
+	case reflect.String:
+		return i.String() < j.String()
+	case reflect.Array, reflect.Slice:
+		// TODO(maruel): Use Less(i, j int) bool when available.
+		l := i.Len()
+		if ll := j.Len(); ll < l {
+			l = ll
+		}
+		for index := 0; index < l; index++ {
+			ii := i.Index(index)
+			jj := j.Index(index)
+			if less(ii, jj) {
+				return true
+			}
+			if less(jj, ii) {
+				return false
+			}
+		}
+		return i.Len() < j.Len()
+	case reflect.Chan, reflect.Map:
+		return i.Len() < j.Len()
+	case reflect.Interface, reflect.Ptr:
+		ii := nonzero(i)
+		jj := nonzero(j)
+		if !ii {
+			return jj
+		}
+		if !jj {
+			return false
+		}
+		return less(i.Elem(), j.Elem())
+	case reflect.Func:
+		return getFuncName(i) < getFuncName(j)
+	case reflect.Struct:
+		// TODO(maruel): Compare members one by one.
+		return false
+	case reflect.UnsafePointer:
+		fallthrough
+	default:
+		return i.Pointer() < j.Pointer()
+	}
+}
+
+func getFuncName(i reflect.Value) string {
+	return runtime.FuncForPC(i.Pointer()).Name()
 }
 
 func canInline(t reflect.Type) bool {
