@@ -38,7 +38,7 @@ func (f F) Format(s fmt.State, c rune) {
 	fmt.Fprintf(s, "F(%d)", int(f))
 }
 
-type Stringer struct { i int }
+type Stringer struct{ i int }
 
 func (s *Stringer) String() string { return "foo" }
 
@@ -74,6 +74,7 @@ var gosyntax = []test{
 	//{make(chan int), "(chan int)(0x1234)"},
 	{unsafe.Pointer(uintptr(unsafe.Pointer(&long))), fmt.Sprintf("unsafe.Pointer(0x%02x)", uintptr(unsafe.Pointer(&long)))},
 	{func(int) {}, "func(int) {...}"},
+	{map[string]string{"a": "a", "b": "b"}, "map[string]string{\"a\":\"a\", \"b\":\"b\"}"},
 	{map[int]int{1: 1}, "map[int]int{1:1}"},
 	{int32(1), "int32(1)"},
 	{io.EOF, `&errors.errorString{s:"EOF"}`},
