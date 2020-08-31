@@ -98,6 +98,14 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 		return
 	}
 
+	if v.IsValid() && v.CanInterface() {
+		i := v.Interface()
+		if goStringer, ok := i.(fmt.GoStringer); ok {
+			io.WriteString(p, goStringer.GoString())
+			return
+		}
+	}
+
 	switch v.Kind() {
 	case reflect.Bool:
 		p.printInline(v, v.Bool(), showType)

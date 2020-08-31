@@ -62,6 +62,19 @@ func TestPassthrough(t *testing.T) {
 	}
 }
 
+type StructWithPrivateFields struct {
+	A string
+	b string
+}
+
+func NewStructWithPrivateFields(a string) StructWithPrivateFields {
+	return StructWithPrivateFields{a, "fixedb"}
+}
+
+func (s StructWithPrivateFields) GoString() string {
+	return fmt.Sprintf("NewStructWithPrivateFields(%q)", s.A)
+}
+
 var gosyntax = []test{
 	{nil, `nil`},
 	{"", `""`},
@@ -84,6 +97,7 @@ var gosyntax = []test{
 		`[]string{"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"}`,
 	},
 	{F(5), "pretty.F(5)"},
+	{ NewStructWithPrivateFields("foo"), `NewStructWithPrivateFields("foo")`},
 	{
 		SA{&T{1, 2}, T{3, 4}},
 		`pretty.SA{
