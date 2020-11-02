@@ -222,7 +222,7 @@ func (w diffcompaTor) diff(av, bv reflect.Value) {
 		lenA := av.Len()
 		lenB := bv.Len()
 		if lenA != lenB {
-			//	w.printf("%s[%d] != %s[%d]", av.Type(), lenA, bv.Type(), lenB) Todo
+			w.comparem("", Data{From: fmt.Sprintf("[%d]", lenA), To: fmt.Sprintf("[%d]", lenB)})
 			break
 		}
 		for i := 0; i < lenA; i++ {
