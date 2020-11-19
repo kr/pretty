@@ -1,4 +1,4 @@
-module github.com/bashayerAlsalma/pretty
+module github.com/bashayerAlsalman/pretty
 
 go 1.12
 
