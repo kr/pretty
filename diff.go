@@ -7,16 +7,36 @@ import (
 )
 
 type sbuf []string
+type mbuf map[string]Data
 
 func (p *sbuf) Printf(format string, a ...interface{}) {
 	s := fmt.Sprintf(format, a...)
 	*p = append(*p, s)
 }
 
+//Comparem func To append the latest compared values To previous result `p`
+func (p *mbuf) Comparem(label string, d ...Data) {
+	var m mbuf = make(map[string]Data)
+	for _, dd := range d {
+		m[label] = dd
+	}
+	for k, v := range *p {
+		m[k] = v
+	}
+	*p = m
+}
+
 // Diff returns a slice where each element describes
 // a difference between a and b.
 func Diff(a, b interface{}) (desc []string) {
 	Pdiff((*sbuf)(&desc), a, b)
+	return desc
+}
+
+// DiffAsMap returns a map fo where each element describes
+// a difference between a and b.
+func DiffAsMap(a, b interface{}) (desc map[string]Data) {
+	Mdiff((*mbuf)(&desc), a, b)
 	return desc
 }
 
@@ -28,7 +48,7 @@ func (p *wprintfer) Printf(format string, a ...interface{}) {
 	fmt.Fprintf(p.w, format+"\n", a...)
 }
 
-// Fdiff writes to w a description of the differences between a and b.
+// Fdiff writes To w a description of the differences between a and b.
 func Fdiff(w io.Writer, a, b interface{}) {
 	Pdiff(&wprintfer{w}, a, b)
 }
@@ -37,7 +57,13 @@ type Printfer interface {
 	Printf(format string, a ...interface{})
 }
 
-// Pdiff prints to p a description of the differences between a and b.
+//ComparaTor interface for comparing between a,b then calling
+//the subsequent element
+type ComparaTor interface {
+	Comparem(label string, d ...Data)
+}
+
+// Pdiff prints To p a description of the differences between a and b.
 // It calls Printf once for each difference, with no trailing newline.
 // The standard library log.Logger is a Printfer.
 func Pdiff(p Printfer, a, b interface{}) {
@@ -45,6 +71,14 @@ func Pdiff(p Printfer, a, b interface{}) {
 		w:        p,
 		aVisited: make(map[visit]visit),
 		bVisited: make(map[visit]visit),
+	}
+	d.diff(reflect.ValueOf(a), reflect.ValueOf(b))
+}
+
+//Mdiff func
+func Mdiff(p ComparaTor, a, b interface{}) {
+	d := diffcompaTor{
+		w: p,
 	}
 	d.diff(reflect.ValueOf(a), reflect.ValueOf(b))
 }
@@ -61,7 +95,11 @@ func (p *logprintfer) Printf(format string, a ...interface{}) {
 	p.l.Logf(format, a...)
 }
 
-// Ldiff prints to l a description of the differences between a and b.
+func (p *logprintfer) Comparem(format string, a ...interface{}) {
+	p.l.Logf(format, a...)
+}
+
+// Ldiff prints To l a description of the differences between a and b.
 // It calls Logf once for each difference, with no trailing newline.
 // The standard library testing.T and testing.B are Logfers.
 func Ldiff(l Logfer, a, b interface{}) {
@@ -76,12 +114,131 @@ type diffPrinter struct {
 	bVisited map[visit]visit
 }
 
+type diffcompaTor struct {
+	w ComparaTor
+	l string // label
+}
+
+//Data sctruct To write the compare result as From: `old Data`, To: `new Data` for each entry
+type Data struct {
+	From interface{}
+	To   interface{}
+}
+
 func (w diffPrinter) printf(f string, a ...interface{}) {
 	var l string
 	if w.l != "" {
 		l = w.l + ": "
 	}
 	w.w.Printf(l+f, a...)
+}
+
+func (w diffcompaTor) comparem(f string, d ...Data) {
+	var l string
+	if w.l != "" {
+		l = w.l
+	} else {
+		l = f
+	}
+	w.w.Comparem(l, d...)
+}
+
+func (w diffcompaTor) diff(av, bv reflect.Value) {
+	if !av.IsValid() && bv.IsValid() {
+		w.comparem("", Data{From: "nill", To: bv})
+		return
+	}
+	if av.IsValid() && !bv.IsValid() {
+		w.comparem("", Data{From: av, To: "nill"})
+		return
+	}
+	if !av.IsValid() && !bv.IsValid() {
+		return
+	}
+
+	at := av.Type()
+	bt := bv.Type()
+	if at != bt {
+		w.comparem(fmt.Sprintf("%s", at.Kind()), Data{From: av, To: bv})
+		return
+	}
+
+	switch kind := at.Kind(); kind {
+	case reflect.Bool:
+		if a, b := av.Bool(), bv.Bool(); a != b {
+			w.comparem(fmt.Sprintf("%s", at.Kind()), Data{From: av, To: bv})
+		}
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		if a, b := av.Int(), bv.Int(); a != b {
+			w.comparem(fmt.Sprintf("%s", at.Kind()), Data{From: av, To: bv})
+		}
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		if a, b := av.Uint(), bv.Uint(); a != b {
+			w.comparem(fmt.Sprintf("%s", at.Kind()), Data{From: fmt.Sprintf("%#v", av), To: fmt.Sprintf("%#v", bv)})
+		}
+	case reflect.Float32, reflect.Float64:
+		if a, b := av.Float(), bv.Float(); a != b {
+			w.comparem(fmt.Sprintf("%s", at.Kind()), Data{From: av, To: bv})
+		}
+	case reflect.Complex64, reflect.Complex128:
+		if a, b := av.Complex(), bv.Complex(); a != b {
+			w.comparem(fmt.Sprintf("%s", at.Kind()), Data{From: av, To: bv})
+		}
+	case reflect.Array:
+		n := av.Len()
+		for i := 0; i < n; i++ {
+			w.relabel(fmt.Sprintf("[%d]", i)).diff(av.Index(i), bv.Index(i))
+		}
+	case reflect.Chan, reflect.Func, reflect.UnsafePointer:
+		if a, b := av.Pointer(), bv.Pointer(); a != b {
+			w.comparem(fmt.Sprintf("%s", at.Kind()), Data{From: av, To: bv})
+		}
+	case reflect.Interface:
+		w.diff(av.Elem(), bv.Elem())
+	case reflect.Map:
+		ak, both, bk := keyDiff(av.MapKeys(), bv.MapKeys())
+		for _, k := range ak {
+			w.relabel(fmt.Sprintf("[%#v]", k))
+			w.comparem(fmt.Sprintf("%s", at.Kind()), Data{From: av.MapIndex(k), To: "missing"})
+		}
+		for _, k := range both {
+			w := w.relabel(fmt.Sprintf("[%#v]", k))
+			w.diff(av.MapIndex(k), bv.MapIndex(k))
+		}
+		for _, k := range bk {
+			w.relabel(fmt.Sprintf("[%#v]", k))
+			w.comparem(fmt.Sprintf("%s", bt.Kind()), Data{From: "missing", To: av.MapIndex(k)})
+		}
+	case reflect.Ptr:
+		switch {
+		case av.IsNil() && !bv.IsNil():
+			w.comparem("", Data{From: "nil", To: bv})
+		case !av.IsNil() && bv.IsNil():
+			w.comparem("", Data{From: av, To: "nil"})
+		case !av.IsNil() && !bv.IsNil():
+			w.diff(av.Elem(), bv.Elem())
+		}
+	case reflect.Slice:
+		lenA := av.Len()
+		lenB := bv.Len()
+		if lenA != lenB {
+			w.comparem("", Data{From: fmt.Sprintf("[%d]", lenA), To: fmt.Sprintf("[%d]", lenB)})
+			break
+		}
+		for i := 0; i < lenA; i++ {
+			w.relabel(fmt.Sprintf("[%d]", i)).diff(av.Index(i), bv.Index(i))
+		}
+	case reflect.String:
+		if a, b := av.String(), bv.String(); a != b {
+			w.comparem(fmt.Sprintf("%s", at.Kind()), Data{From: a, To: b})
+		}
+	case reflect.Struct:
+		for i := 0; i < av.NumField(); i++ {
+			w.relabel(at.Field(i).Name).diff(av.Field(i), bv.Field(i))
+		}
+	default:
+		panic("unknown reflect Kind: " + kind.String())
+	}
 }
 
 func (w diffPrinter) diff(av, bv reflect.Value) {
@@ -205,6 +362,15 @@ func (w diffPrinter) diff(av, bv reflect.Value) {
 }
 
 func (d diffPrinter) relabel(name string) (d1 diffPrinter) {
+	d1 = d
+	if d.l != "" && name[0] != '[' {
+		d1.l += "."
+	}
+	d1.l += name
+	return d1
+}
+
+func (d diffcompaTor) relabel(name string) (d1 diffcompaTor) {
 	d1 = d
 	if d.l != "" && name[0] != '[' {
 		d1.l += "."
