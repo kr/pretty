@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"time"
 )
 
 type sbuf []string
@@ -196,6 +197,15 @@ func (w diffPrinter) diff(av, bv reflect.Value) {
 			w.printf("%q != %q", a, b)
 		}
 	case reflect.Struct:
+		if av.CanInterface() && bv.CanInterface() {
+			aTime, aOk := av.Interface().(time.Time)
+			bTime, bOk := bv.Interface().(time.Time)
+			if aOk && bOk {
+				w.printf("%s != %s", formatDate(aTime), formatDate(bTime))
+				break
+			}
+		}
+
 		for i := 0; i < av.NumField(); i++ {
 			w.relabel(at.Field(i).Name).diff(av.Field(i), bv.Field(i))
 		}

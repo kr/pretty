@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 	"testing"
+	"time"
 	"unsafe"
 )
 
@@ -175,6 +176,10 @@ var gosyntax = []test{
         otherLongFieldName: nil,
     },
 }`,
+	},
+	{
+		time.Date(2009, 11, 17, 20, 34, 58, 651387237, time.UTC),
+		"time.Date(2009, 11, 17, 20, 34, 58, 651387237, time.UTC)",
 	},
 }
 

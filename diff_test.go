@@ -6,6 +6,7 @@ import (
 	"log"
 	"reflect"
 	"testing"
+	"time"
 	"unsafe"
 )
 
@@ -125,6 +126,11 @@ var diffs = []difftest{
 		struct{ x unsafe.Pointer }{unsafe.Pointer(uintptr(0))},
 		struct{ x unsafe.Pointer }{unsafe.Pointer(uintptr(1))},
 		[]string{`x: 0x0 != 0x1`},
+	},
+	{
+		time.Date(2009, 11, 17, 20, 34, 58, 651387237, time.UTC),
+		time.Date(2020, 11, 17, 20, 34, 58, 651387237, time.UTC),
+		[]string{"time.Date(2009, 11, 17, 20, 34, 58, 651387237, time.UTC) != time.Date(2020, 11, 17, 20, 34, 58, 651387237, time.UTC)"},
 	},
 }
 

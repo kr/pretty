@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strconv"
 	"text/tabwriter"
+	"time"
 
 	"github.com/kr/text"
 	"github.com/rogpeppe/go-internal/fmtsort"
@@ -155,6 +156,14 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 		}
 		writeByte(p, '}')
 	case reflect.Struct:
+		if v.CanInterface() {
+			time, ok := v.Interface().(time.Time)
+			if ok {
+				io.WriteString(p, formatDate(time))
+				break
+			}
+		}
+
 		t := v.Type()
 		if v.CanAddr() {
 			addr := v.UnsafeAddr()
@@ -333,4 +342,12 @@ func getField(v reflect.Value, i int) reflect.Value {
 		val = val.Elem()
 	}
 	return val
+}
+
+func formatDate(time time.Time) string {
+	location := time.Location().String()
+	if location == "" {
+		location = "UTC"
+	}
+	return fmt.Sprintf("time.Date(%d, %d, %d, %d, %d, %d, %d, time.%v)", time.Year(), time.Month(), time.Day(), time.Hour(), time.Minute(), time.Second(), time.Nanosecond(), location)
 }
