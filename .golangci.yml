@@ -1,4 +1,6 @@
 linters:
+  disable:
+    - errcheck
+    - structcheck
   enable:
-    - gofmt
     - govet
