@@ -2,5 +2,6 @@ linters:
   disable:
     - errcheck
     - structcheck
+    - unused
   enable:
     - govet
