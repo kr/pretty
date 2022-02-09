@@ -38,7 +38,7 @@ func (f F) Format(s fmt.State, c rune) {
 	fmt.Fprintf(s, "F(%d)", int(f))
 }
 
-type Stringer struct { i int }
+type Stringer struct{ i int }
 
 func (s *Stringer) String() string { return "foo" }
 
@@ -62,6 +62,19 @@ func TestPassthrough(t *testing.T) {
 	}
 }
 
+type StructWithPrivateFields struct {
+	A string
+	b string
+}
+
+func NewStructWithPrivateFields(a string) StructWithPrivateFields {
+	return StructWithPrivateFields{a, "fixedb"}
+}
+
+func (s StructWithPrivateFields) GoString() string {
+	return fmt.Sprintf("NewStructWithPrivateFields(%q)", s.A)
+}
+
 var gosyntax = []test{
 	{nil, `nil`},
 	{"", `""`},
@@ -74,6 +87,7 @@ var gosyntax = []test{
 	//{make(chan int), "(chan int)(0x1234)"},
 	{unsafe.Pointer(uintptr(unsafe.Pointer(&long))), fmt.Sprintf("unsafe.Pointer(0x%02x)", uintptr(unsafe.Pointer(&long)))},
 	{func(int) {}, "func(int) {...}"},
+	{map[string]string{"a": "a", "b": "b"}, "map[string]string{\"a\":\"a\", \"b\":\"b\"}"},
 	{map[int]int{1: 1}, "map[int]int{1:1}"},
 	{int32(1), "int32(1)"},
 	{io.EOF, `&errors.errorString{s:"EOF"}`},
@@ -83,6 +97,7 @@ var gosyntax = []test{
 		`[]string{"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"}`,
 	},
 	{F(5), "pretty.F(5)"},
+	{ NewStructWithPrivateFields("foo"), `NewStructWithPrivateFields("foo")`},
 	{
 		SA{&T{1, 2}, T{3, 4}},
 		`pretty.SA{
