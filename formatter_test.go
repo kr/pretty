@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 	"testing"
+	"time"
 	"unsafe"
 )
 
@@ -97,7 +98,7 @@ var gosyntax = []test{
 		`[]string{"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"}`,
 	},
 	{F(5), "pretty.F(5)"},
-	{ NewStructWithPrivateFields("foo"), `NewStructWithPrivateFields("foo")`},
+	{NewStructWithPrivateFields("foo"), `NewStructWithPrivateFields("foo")`},
 	{
 		SA{&T{1, 2}, T{3, 4}},
 		`pretty.SA{
@@ -176,6 +177,41 @@ var gosyntax = []test{
     },
 }`,
 	},
+	{(*time.Time)(nil), "(*time.Time)(nil)"},
+	{&ValueGoString{"vgs"}, `VGS vgs`},
+	{(*ValueGoString)(nil), `(*pretty.ValueGoString)(nil)`},
+	{(*VGSWrapper)(nil), `(*pretty.VGSWrapper)(nil)`},
+	{&PointerGoString{"pgs"}, `PGS pgs`},
+	{(*PointerGoString)(nil), "(*pretty.PointerGoString)(nil)"},
+	{&PanicGoString{"oops!"}, `(*pretty.PanicGoString)(PANIC=calling method "GoString": oops!)`},
+}
+
+type ValueGoString struct {
+	s string
+}
+
+func (g ValueGoString) GoString() string {
+	return "VGS " + g.s
+}
+
+type VGSWrapper struct {
+	ValueGoString
+}
+
+type PointerGoString struct {
+	s string
+}
+
+func (g *PointerGoString) GoString() string {
+	return "PGS " + g.s
+}
+
+type PanicGoString struct {
+	s string
+}
+
+func (g *PanicGoString) GoString() string {
+	panic(g.s)
 }
 
 func TestGoSyntax(t *testing.T) {
