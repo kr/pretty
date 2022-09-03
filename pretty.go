@@ -30,6 +30,15 @@ func Fprintf(w io.Writer, format string, a ...interface{}) (n int, error error) 
 	return fmt.Fprintf(w, format, wrap(a, false)...)
 }
 
+// Fprintln is a convenience wrapper for fmt.Fprintln.
+//
+// Calling Fprintln(w, x, y) is equivalent to
+// fmt.Fprintln(w, Formatter(x), Formatter(y)), but each operand is
+// formatted with "%# v".
+func Fprintln(w io.Writer, a ...interface{}) (n int, error error) {
+	return fmt.Fprintln(w, wrap(a, true)...)
+}
+
 // Log is a convenience wrapper for log.Printf.
 //
 // Calling Log(x, y) is equivalent to
