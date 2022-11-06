@@ -169,7 +169,18 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 				writeByte(p, '\n')
 				pp = p.indent()
 			}
-			for i := 0; i < v.NumField(); i++ {
+
+			numfields := v.NumField()
+			writecomma := false
+			for i := 0; i < numfields; i++ {
+				fieldTag := t.Field(i)
+				val := fieldTag.Tag.Get("pretty")
+				if val == "-" {
+					continue
+				}
+				if writecomma && !expand && i > 0 {
+					io.WriteString(pp, ", ")
+				}
 				showTypeInStruct := true
 				if f := t.Field(i); f.Name != "" {
 					io.WriteString(pp, f.Name)
@@ -178,12 +189,11 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 						writeByte(pp, '\t')
 					}
 					showTypeInStruct = labelType(f.Type)
+					writecomma = true
 				}
 				pp.printValue(getField(v, i), showTypeInStruct, true)
 				if expand {
 					io.WriteString(pp, ",\n")
-				} else if i < v.NumField()-1 {
-					io.WriteString(pp, ", ")
 				}
 			}
 			if expand {

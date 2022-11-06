@@ -286,3 +286,53 @@ func TestCycle(t *testing.T) {
 	*iv = *i
 	t.Logf("Example long interface cycle:\n%# v", Formatter(i))
 }
+func TestStructFieldTags1(t *testing.T) {
+	type testFieldTagCase struct {
+		tc   interface{}
+		want string
+	}
+
+	type fieldTagTest1 struct {
+		z    string `pretty:"-"`
+		x, y int
+	}
+	type commaTest1 struct {
+		z    string
+		x, y int `pretty:"-"`
+	}
+	type commaTest2 struct {
+		x, y    int
+		private string `pretty:"-"`
+		a, b, c int
+	}
+	type structInInterfaceTest struct {
+		fields []interface{}
+	}
+
+	// httpGet, _ := http.NewRequest(http.MethodGet, "https://example.org/", nil)
+	for i, tc := range []testFieldTagCase{
+		// 		{tc: struct {
+		// 			r    *http.Request `pretty:"-"`
+		// 			name string
+		// 		}{r: httpGet, name: "http Request test"},
+		// 			want: `struct { r *http.Request "pretty:\"-\""; name string }{
+		//     name: "http Request test",
+		// }`},
+		{tc: fieldTagTest1{x: 1, y: 2, z: "should be ignored"}, want: `pretty.fieldTagTest1{x:1, y:2}`},
+		{tc: commaTest1{x: 1, y: 2, z: "should be displayed with no commas"}, want: `pretty.commaTest1{z:"should be displayed with no commas"}`},
+		{tc: commaTest2{x: 1, y: 2, private: "should be ignored", a: 42, b: 3, c: 4}, want: `pretty.commaTest2{x:1, y:2, a:42, b:3, c:4}`},
+		{tc: structInInterfaceTest{fields: []interface{}{commaTest2{x: 1, y: 2, private: "should be ignored", a: 42, b: 3, c: 4}}}, want: `pretty.structInInterfaceTest{
+    fields: {
+        pretty.commaTest2{x:1, y:2, a:42, b:3, c:4},
+    },
+}`},
+	} {
+		got := Sprint(tc.tc)
+		// fmt.Fprintf(os.Stderr, "\ntest %d:\n%s\n", i+1, got)
+		if got != tc.want {
+			t.Logf("test %d: Got:    %s", i+1, got)
+			t.Logf("test %d  Wanted: %s", i+1, tc.want)
+			t.Fail()
+		}
+	}
+}
