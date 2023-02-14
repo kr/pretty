@@ -134,12 +134,14 @@ func (w diffPrinter) diff(av, bv reflect.Value) {
 		if !equals(av.Interface(), bv.Interface()) {
 			w.printf("%v != %v", av, bv)
 		}
+		return
 	}
 
 	if w.numericComparator != nil && at.ConvertibleTo(reflect.TypeOf(float64(0))) && bt.ConvertibleTo(reflect.TypeOf(float64(0))) {
-		if !w.numericComparator(av.Float(), bv.Float()) {
+		if !w.numericComparator(av.Convert(reflect.TypeOf(float64(0))).Float(), bv.Convert(reflect.TypeOf(float64(0))).Float()) {
 			w.printf("%v != %v", av, bv)
 		}
+		return
 	}
 
 	switch kind := at.Kind(); kind {
