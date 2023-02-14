@@ -7,7 +7,7 @@ import (
 
 func Test_customDiffPrinter_Diff(t *testing.T) {
 	type fields struct {
-		customComparators map[reflect.Type]Equals
+		opts []func(*Options)
 	}
 	type args struct {
 		a interface{}
@@ -33,7 +33,7 @@ func Test_customDiffPrinter_Diff(t *testing.T) {
 		{
 			name: "equals",
 			fields: fields{
-				customComparators: nil,
+				opts: nil,
 			},
 			args: args{
 				a: testStruct{
@@ -53,6 +53,55 @@ func Test_customDiffPrinter_Diff(t *testing.T) {
 			},
 			wantDesc: nil,
 			wantOk:   true,
+		},
+		{
+			name: "not equals",
+			fields: fields{
+				opts: nil,
+			},
+			args: args{
+				a: testStruct{
+					intField:   1,
+					floatField: 2.3,
+					child: testStruct2{
+						str: "strValue",
+					},
+				},
+				b: testStruct{
+					intField:   2,
+					floatField: 2.3,
+					child: testStruct2{
+						str: "strValue",
+					},
+				},
+			},
+			wantDesc: []string{"intField: 1 != 2"},
+			wantOk:   false,
+		},
+
+		{
+			name: "numeric comparator",
+			fields: fields{
+				opts: nil,
+			},
+			args: args{
+				a: testStruct{
+					intField:   1,
+					floatField: 2.3,
+					child: testStruct2{
+						str: "strValue",
+					},
+				},
+				b: testStruct{
+					intField:   2,
+					floatField: 2.3,
+					child: testStruct2{
+						str: "strValue",
+					},
+				},
+			},
+			wantDesc: []string{"intField: 1 != 2"},
+			wantOk:   false,
 		},
 	}
 	for _, tt := range tests {

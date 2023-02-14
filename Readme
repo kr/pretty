@@ -1,9 +1,6 @@
 package pretty
 
-    import "github.com/kr/pretty"
+     go get github.com/kr/pretty
+     The 151th fork of "github.com/kr/pretty".
+     In this fork custom comparators for deep diff check of structures added
 
-    Package pretty provides pretty-printing for Go values.
-
-Documentation
-
-    http://godoc.org/github.com/kr/pretty
