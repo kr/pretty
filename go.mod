@@ -1,4 +1,4 @@
-module github.com/kr/pretty
+module github.com/edgro/pretty
 
 go 1.19
 
