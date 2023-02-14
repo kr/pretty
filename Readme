@@ -1,6 +1,6 @@
 package pretty
 
-     go get github.com/kr/pretty
+     go get github.com/edgro/pretty
      The 151th fork of "github.com/kr/pretty".
      In this fork custom comparators for deep diff check of structures added
 
