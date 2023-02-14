@@ -72,6 +72,9 @@ type diffPrinter struct {
 	w Printfer
 	l string // label
 
+	customComparators map[reflect.Type]Equals
+	numericComparator Float64Equals
+
 	aVisited map[visit]visit
 	bVisited map[visit]visit
 }
@@ -123,6 +126,19 @@ func (w diffPrinter) diff(av, bv reflect.Value) {
 		w.bVisited[bvis] = avis
 		if cycle {
 			return
+		}
+	}
+
+	equals, ok := w.customComparators[at]
+	if ok {
+		if !equals(av.Interface(), bv.Interface()) {
+			w.printf("%v != %v", av, bv)
+		}
+	}
+
+	if w.numericComparator != nil && at.ConvertibleTo(reflect.TypeOf(float64(0))) && bt.ConvertibleTo(reflect.TypeOf(float64(0))) {
+		if !w.numericComparator(av.Float(), bv.Float()) {
+			w.printf("%v != %v", av, bv)
 		}
 	}
 
