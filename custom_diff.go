@@ -28,7 +28,7 @@ func WithCustomComparators(customComparators map[reflect.Type]Equals) func(*Opti
 
 func newMustAbsoluteDeltaLessThan(e float64) func(a, b float64) bool {
 	return func(a, b float64) bool {
-		return math.Abs(a-b) < e
+		return math.Abs(a-b) <= e
 	}
 }
 
