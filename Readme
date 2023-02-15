@@ -3,5 +3,12 @@ package pretty
      go get github.com/edgro/pretty
      The 151th fork of "github.com/kr/pretty".
      In this fork custom comparators for deep diff check of any go types added
+     For example to use Diff with tolerance for all numeric fields:
 
+	var (
+		a, b interface{}
+		e    float64
+	)
 
+	diffs, equals := pretty.NewCustomDiff(pretty.WithNumericEpsilon(e)).Diff(a, b)
+     
