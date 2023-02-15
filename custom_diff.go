@@ -5,6 +5,8 @@ import (
 	"reflect"
 )
 
+const defaultPrecision = 0.0000001
+
 type customDiff struct {
 }
 
@@ -26,9 +28,11 @@ func WithCustomComparators(customComparators map[reflect.Type]Equals) func(*Opti
 	}
 }
 
+var precision = defaultPrecision
+
 func newMustAbsoluteDeltaLessThan(e float64) func(a, b float64) bool {
 	return func(a, b float64) bool {
-		return math.Abs(a-b) <= e
+		return math.Abs(a-b) <= e+precision
 	}
 }
 

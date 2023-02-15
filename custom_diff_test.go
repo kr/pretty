@@ -105,6 +105,32 @@ func Test_customDiffPrinter_Diff(t *testing.T) {
 			wantDesc: nil,
 			wantOk:   true,
 		},
+		{
+			name: "numeric comparator 2",
+			fields: fields{
+				opts: []func(options *Options){
+					WithNumericEpsilon(0.01),
+				},
+			},
+			args: args{
+				a: testStruct{
+					intField:   1,
+					floatField: 53.23,
+					child: testStruct2{
+						str: "strValue",
+					},
+				},
+				b: testStruct{
+					intField:   1,
+					floatField: 53.24,
+					child: testStruct2{
+						str: "strValue",
+					},
+				},
+			},
+			wantDesc: nil,
+			wantOk:   true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
