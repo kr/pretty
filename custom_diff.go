@@ -12,6 +12,7 @@ type customDiff struct {
 
 type Comparator interface {
 	Diff(a, b interface{}) (desc []string, ok bool)
+	StructuredDiff(a, b interface{}) (desc []StructuredDiff, ok bool)
 }
 
 type Equals func(a, b interface{}) bool

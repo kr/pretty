@@ -89,13 +89,9 @@ func (w diffPrinter) printf(f string, a ...interface{}) {
 }
 
 func (w diffPrinter) structuredPrint(aValue, bValue string) {
-	var l string
-	if w.l != "" {
-		l = w.l + ": "
-	}
 	if w.structuredOutput != nil {
 		w.structuredOutput.Print(StructuredDiff{
-			FieldName: l,
+			FieldName: w.l,
 			ValueA:    aValue,
 			ValueB:    bValue,
 		})
