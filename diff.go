@@ -69,8 +69,9 @@ func Ldiff(l Logfer, a, b interface{}) {
 }
 
 type diffPrinter struct {
-	w Printfer
-	l string // label
+	w                Printfer
+	structuredOutput StructuredDiffer
+	l                string // label
 
 	customComparators map[reflect.Type]Equals
 	numericComparator Float64Equals
@@ -87,13 +88,29 @@ func (w diffPrinter) printf(f string, a ...interface{}) {
 	w.w.Printf(l+f, a...)
 }
 
+func (w diffPrinter) structuredPrint(aValue, bValue string) {
+	var l string
+	if w.l != "" {
+		l = w.l + ": "
+	}
+	if w.structuredOutput != nil {
+		w.structuredOutput.Print(StructuredDiff{
+			FieldName: l,
+			ValueA:    aValue,
+			ValueB:    bValue,
+		})
+	}
+}
+
 func (w diffPrinter) diff(av, bv reflect.Value) {
 	if !av.IsValid() && bv.IsValid() {
 		w.printf("nil != %# v", formatter{v: bv, quote: true})
+		w.structuredPrint("nil", fmt.Sprintf("%v", bv))
 		return
 	}
 	if av.IsValid() && !bv.IsValid() {
 		w.printf("%# v != nil", formatter{v: av, quote: true})
+		w.structuredPrint(fmt.Sprintf("%v", av), "nil")
 		return
 	}
 	if !av.IsValid() && !bv.IsValid() {
@@ -104,6 +121,7 @@ func (w diffPrinter) diff(av, bv reflect.Value) {
 	bt := bv.Type()
 	if at != bt {
 		w.printf("%v != %v", at, bt)
+		w.structuredPrint(fmt.Sprintf("%v", at), fmt.Sprintf("%v", bt))
 		return
 	}
 
@@ -117,10 +135,12 @@ func (w diffPrinter) diff(av, bv reflect.Value) {
 			cycle = true
 			if vis != bvis {
 				w.printf("%# v (previously visited) != %# v", formatter{v: av, quote: true}, formatter{v: bv, quote: true})
+				w.structuredPrint(fmt.Sprintf("%#v (previously visited) ", av), fmt.Sprintf("%#v", bv))
 			}
 		} else if _, ok := w.bVisited[bvis]; ok {
 			cycle = true
 			w.printf("%# v != %# v (previously visited)", formatter{v: av, quote: true}, formatter{v: bv, quote: true})
+			w.structuredPrint(fmt.Sprintf("%#v", av), fmt.Sprintf("%#v (previously visited) ", bv))
 		}
 		w.aVisited[avis] = bvis
 		w.bVisited[bvis] = avis
@@ -133,6 +153,7 @@ func (w diffPrinter) diff(av, bv reflect.Value) {
 	if ok {
 		if !equals(av.Interface(), bv.Interface()) {
 			w.printf("%v != %v", av, bv)
+			w.structuredPrint(fmt.Sprintf("%v", av), fmt.Sprintf("%v", bv))
 		}
 		return
 	}
@@ -140,6 +161,7 @@ func (w diffPrinter) diff(av, bv reflect.Value) {
 	if w.numericComparator != nil && at.ConvertibleTo(reflect.TypeOf(float64(0))) && bt.ConvertibleTo(reflect.TypeOf(float64(0))) {
 		if !w.numericComparator(av.Convert(reflect.TypeOf(float64(0))).Float(), bv.Convert(reflect.TypeOf(float64(0))).Float()) {
 			w.printf("%v != %v", av, bv)
+			w.structuredPrint(fmt.Sprintf("%v", av), fmt.Sprintf("%v", bv))
 		}
 		return
 	}
@@ -148,22 +170,27 @@ func (w diffPrinter) diff(av, bv reflect.Value) {
 	case reflect.Bool:
 		if a, b := av.Bool(), bv.Bool(); a != b {
 			w.printf("%v != %v", a, b)
+			w.structuredPrint(fmt.Sprintf("%v", a), fmt.Sprintf("%v", b))
 		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		if a, b := av.Int(), bv.Int(); a != b {
 			w.printf("%d != %d", a, b)
+			w.structuredPrint(fmt.Sprintf("%d", a), fmt.Sprintf("%d", b))
 		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		if a, b := av.Uint(), bv.Uint(); a != b {
 			w.printf("%d != %d", a, b)
+			w.structuredPrint(fmt.Sprintf("%d", a), fmt.Sprintf("%d", b))
 		}
 	case reflect.Float32, reflect.Float64:
 		if a, b := av.Float(), bv.Float(); a != b {
 			w.printf("%v != %v", a, b)
+			w.structuredPrint(fmt.Sprintf("%v", a), fmt.Sprintf("%v", b))
 		}
 	case reflect.Complex64, reflect.Complex128:
 		if a, b := av.Complex(), bv.Complex(); a != b {
 			w.printf("%v != %v", a, b)
+			w.structuredPrint(fmt.Sprintf("%v", a), fmt.Sprintf("%v", b))
 		}
 	case reflect.Array:
 		n := av.Len()
@@ -173,6 +200,7 @@ func (w diffPrinter) diff(av, bv reflect.Value) {
 	case reflect.Chan, reflect.Func, reflect.UnsafePointer:
 		if a, b := av.Pointer(), bv.Pointer(); a != b {
 			w.printf("%#x != %#x", a, b)
+			w.structuredPrint(fmt.Sprintf("%#x", a), fmt.Sprintf("%#x", b))
 		}
 	case reflect.Interface:
 		w.diff(av.Elem(), bv.Elem())
@@ -181,6 +209,7 @@ func (w diffPrinter) diff(av, bv reflect.Value) {
 		for _, k := range ak {
 			w := w.relabel(fmt.Sprintf("[%#v]", k))
 			w.printf("%q != (missing)", av.MapIndex(k))
+			w.structuredPrint(fmt.Sprintf("%q", av.MapIndex(k)), "(missing)")
 		}
 		for _, k := range both {
 			w := w.relabel(fmt.Sprintf("[%#v]", k))
@@ -189,13 +218,16 @@ func (w diffPrinter) diff(av, bv reflect.Value) {
 		for _, k := range bk {
 			w := w.relabel(fmt.Sprintf("[%#v]", k))
 			w.printf("(missing) != %q", bv.MapIndex(k))
+			w.structuredPrint("(missing)", fmt.Sprintf("%q", bv.MapIndex(k)))
 		}
 	case reflect.Ptr:
 		switch {
 		case av.IsNil() && !bv.IsNil():
 			w.printf("nil != %# v", formatter{v: bv, quote: true})
+			w.structuredPrint("nil", fmt.Sprintf("%#v", bv))
 		case !av.IsNil() && bv.IsNil():
 			w.printf("%# v != nil", formatter{v: av, quote: true})
+			w.structuredPrint(fmt.Sprintf("%#v", av), "nil")
 		case !av.IsNil() && !bv.IsNil():
 			w.diff(av.Elem(), bv.Elem())
 		}
@@ -204,6 +236,7 @@ func (w diffPrinter) diff(av, bv reflect.Value) {
 		lenB := bv.Len()
 		if lenA != lenB {
 			w.printf("%s[%d] != %s[%d]", av.Type(), lenA, bv.Type(), lenB)
+			w.structuredPrint(fmt.Sprintf("%s[%d]", av.Type(), lenA), fmt.Sprintf("%s[%d]", bv.Type(), lenB))
 			break
 		}
 		for i := 0; i < lenA; i++ {
@@ -212,6 +245,7 @@ func (w diffPrinter) diff(av, bv reflect.Value) {
 	case reflect.String:
 		if a, b := av.String(), bv.String(); a != b {
 			w.printf("%q != %q", a, b)
+			w.structuredPrint(fmt.Sprintf("%q", a), fmt.Sprintf("%q", b))
 		}
 	case reflect.Struct:
 		for i := 0; i < av.NumField(); i++ {
