@@ -337,3 +337,27 @@ func TestCycle(t *testing.T) {
 	*iv = *i
 	t.Logf("Example long interface cycle:\n%# v", Formatter(i))
 }
+
+func TestSliceField(t *testing.T) {
+	type MyField struct {
+		Name string
+	}
+	type MyObj struct {
+		Name   string
+		Fields []MyField
+	}
+
+	o := MyObj{
+		Name: "xxx",
+		Fields: []MyField{
+			{
+				Name: "fff",
+			},
+		},
+	}
+
+	s := fmt.Sprintf("%# v", Formatter(o))
+	if strings.Contains(s, "[]MyField") {
+		t.Error("Slice field missing in struct")
+	}
+}
