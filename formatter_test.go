@@ -337,3 +337,30 @@ func TestCycle(t *testing.T) {
 	*iv = *i
 	t.Logf("Example long interface cycle:\n%# v", Formatter(i))
 }
+
+type AValue struct {
+	ID   int
+	Name string
+}
+
+type ComplexValue struct {
+	AValues []*AValue
+	Values  []interface{}
+	ByName  map[string]interface{}
+}
+
+func TestReuseVisitMap(t *testing.T) {
+	var a = &AValue{ID: 1, Name: "A"}
+	var c = ComplexValue{
+		AValues: []*AValue{a},
+		Values:  []interface{}{a},
+		ByName: map[string]interface{}{
+			"A": a,
+		},
+	}
+
+	var s = Sprint(c)
+	if strings.Contains(s, "CYCLIC") {
+		t.Error("there should not cycle in ComplexValue ", s)
+	}
+}
