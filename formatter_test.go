@@ -364,3 +364,35 @@ func TestReuseVisitMap(t *testing.T) {
 		t.Error("there should not cycle in ComplexValue ", s)
 	}
 }
+
+type Tree struct {
+	Left  *Tree
+	Value interface{}
+	Right *Tree
+}
+
+func TestCycleRefer(t *testing.T) {
+	var tree = &Tree{
+		Left:  nil,
+		Value: 1,
+		Right: &Tree{
+			Left:  nil,
+			Value: 2,
+			Right: nil,
+		},
+	}
+	var s = Sprint(tree)
+	if strings.Contains(s, "CYCLIC") {
+		t.Error("tree should have no cycle in Tree", s)
+	}
+
+	tree.Right.Value = []interface{}{
+		map[string]interface{}{
+			"refer": tree,
+		},
+	}
+	var s2 = Sprint(tree)
+	if !strings.Contains(s2, "CYCLIC") {
+		t.Error("tree should have no cycle in Tree", s2)
+	}
+}
