@@ -337,3 +337,62 @@ func TestCycle(t *testing.T) {
 	*iv = *i
 	t.Logf("Example long interface cycle:\n%# v", Formatter(i))
 }
+
+type AValue struct {
+	ID   int
+	Name string
+}
+
+type ComplexValue struct {
+	AValues []*AValue
+	Values  []interface{}
+	ByName  map[string]interface{}
+}
+
+func TestReuseVisitMap(t *testing.T) {
+	var a = &AValue{ID: 1, Name: "A"}
+	var c = ComplexValue{
+		AValues: []*AValue{a},
+		Values:  []interface{}{a},
+		ByName: map[string]interface{}{
+			"A": a,
+		},
+	}
+
+	var s = Sprint(c)
+	if strings.Contains(s, "CYCLIC") {
+		t.Error("there should not cycle in ComplexValue ", s)
+	}
+}
+
+type Tree struct {
+	Left  *Tree
+	Value interface{}
+	Right *Tree
+}
+
+func TestCycleRefer(t *testing.T) {
+	var tree = &Tree{
+		Left:  nil,
+		Value: 1,
+		Right: &Tree{
+			Left:  nil,
+			Value: 2,
+			Right: nil,
+		},
+	}
+	var s = Sprint(tree)
+	if strings.Contains(s, "CYCLIC") {
+		t.Error("tree should have no cycle in Tree", s)
+	}
+
+	tree.Right.Value = []interface{}{
+		map[string]interface{}{
+			"refer": tree,
+		},
+	}
+	var s2 = Sprint(tree)
+	if !strings.Contains(s2, "CYCLIC") {
+		t.Error("tree should have no cycle in Tree", s2)
+	}
+}

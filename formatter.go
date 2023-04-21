@@ -21,7 +21,7 @@ type formatter struct {
 // breaks and tabs. Object f responds to the "%v" formatting verb when both the
 // "#" and " " (space) flags are set, for example:
 //
-//     fmt.Sprintf("%# v", Formatter(x))
+//	fmt.Sprintf("%# v", Formatter(x))
 //
 // If one of these two flags is not set, or any other verb is used, f will
 // format x according to the usual rules of package fmt.
@@ -69,8 +69,21 @@ type printer struct {
 	depth   int
 }
 
+func (p *printer) clone() printer {
+	visited := make(map[visit]int, len(p.visited))
+	for k, v := range p.visited {
+		visited[k] = v
+	}
+	return printer{
+		Writer:  p.Writer,
+		tw:      p.tw,
+		visited: visited,
+		depth:   p.depth,
+	}
+}
+
 func (p *printer) indent() *printer {
-	q := *p
+	q := p.clone()
 	q.tw = tabwriter.NewWriter(p.Writer, 4, 4, 1, ' ', 0)
 	q.Writer = text.NewIndentWriter(q.tw, []byte{'\t'})
 	return &q
@@ -223,7 +236,7 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 		case e.Kind() == reflect.Invalid:
 			io.WriteString(p, "nil")
 		case e.IsValid():
-			pp := *p
+			pp := p.clone()
 			pp.depth++
 			pp.printValue(e, showType, true)
 		default:
@@ -270,7 +283,7 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 			io.WriteString(p, v.Type().String())
 			io.WriteString(p, ")(nil)")
 		} else {
-			pp := *p
+			pp := p.clone()
 			pp.depth++
 			writeByte(pp, '&')
 			pp.printValue(e, true, true)
