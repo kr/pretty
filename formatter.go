@@ -26,6 +26,11 @@ type formatter struct {
 // If one of these two flags is not set, or any other verb is used, f will
 // format x according to the usual rules of package fmt.
 // In particular, if x satisfies fmt.Formatter, then x.Format will be called.
+//
+// If the "+" flag is provided, zero-valued structure fields will be omitted.
+// For example:
+//
+//     fmt.Sprintf("%# +v", Formatter(x))
 func Formatter(x interface{}) (f fmt.Formatter) {
 	return formatter{v: reflect.ValueOf(x), quote: true}
 }
@@ -55,6 +60,9 @@ func (fo formatter) Format(f fmt.State, c rune) {
 	if fo.force || c == 'v' && f.Flag('#') && f.Flag(' ') {
 		w := tabwriter.NewWriter(f, 4, 4, 1, ' ', 0)
 		p := &printer{tw: w, Writer: w, visited: make(map[visit]int)}
+		if f.Flag('+') {
+			p.skipZeroFields = true
+		}
 		p.printValue(fo.v, true, fo.quote)
 		w.Flush()
 		return
@@ -64,9 +72,10 @@ func (fo formatter) Format(f fmt.State, c rune) {
 
 type printer struct {
 	io.Writer
-	tw      *tabwriter.Writer
-	visited map[visit]int
-	depth   int
+	tw             *tabwriter.Writer
+	visited        map[visit]int
+	depth          int
+	skipZeroFields bool
 }
 
 func (p *printer) indent() *printer {
@@ -196,20 +205,35 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 				writeByte(p, '\n')
 				pp = p.indent()
 			}
+			type field struct {
+				name  string
+				t     reflect.Type
+				value reflect.Value
+			}
+			fields := make([]field, 0, v.NumField())
+			// Collect fields, filtering out zero fields if needed
 			for i := 0; i < v.NumField(); i++ {
+				value := getField(v, i)
+				if p.skipZeroFields && !nonzero(value) {
+					continue
+				}
+				f := t.Field(i)
+				fields = append(fields, field{f.Name, f.Type, value})
+			}
+			for i, field := range fields {
 				showTypeInStruct := true
-				if f := t.Field(i); f.Name != "" {
-					io.WriteString(pp, f.Name)
+				if field.name != "" {
+					io.WriteString(pp, field.name)
 					writeByte(pp, ':')
 					if expand {
 						writeByte(pp, '\t')
 					}
-					showTypeInStruct = labelType(f.Type)
+					showTypeInStruct = labelType(field.t)
 				}
-				pp.printValue(getField(v, i), showTypeInStruct, true)
+				pp.printValue(field.value, showTypeInStruct, true)
 				if expand {
 					io.WriteString(pp, ",\n")
-				} else if i < v.NumField()-1 {
+				} else if i < len(fields)-1 {
 					io.WriteString(pp, ", ")
 				}
 			}
