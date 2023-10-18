@@ -101,10 +101,37 @@ type visit struct {
 	typ reflect.Type
 }
 
+func (p *printer) catchPanic(v reflect.Value, method string) {
+	if r := recover(); r != nil {
+		if v.Kind() == reflect.Ptr && v.IsNil() {
+			writeByte(p, '(')
+			io.WriteString(p, v.Type().String())
+			io.WriteString(p, ")(nil)")
+			return
+		}
+		writeByte(p, '(')
+		io.WriteString(p, v.Type().String())
+		io.WriteString(p, ")(PANIC=calling method ")
+		io.WriteString(p, strconv.Quote(method))
+		io.WriteString(p, ": ")
+		fmt.Fprint(p, r)
+		writeByte(p, ')')
+	}
+}
+
 func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 	if p.depth > 10 {
 		io.WriteString(p, "!%v(DEPTH EXCEEDED)")
 		return
+	}
+
+	if v.IsValid() && v.CanInterface() {
+		i := v.Interface()
+		if goStringer, ok := i.(fmt.GoStringer); ok {
+			defer p.catchPanic(v, "GoString")
+			io.WriteString(p, goStringer.GoString())
+			return
+		}
 	}
 
 	switch v.Kind() {
