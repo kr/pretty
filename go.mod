@@ -1,4 +1,4 @@
-module github.com/mickael-menu/pretty
+module github.com/zk-org/pretty
 
 go 1.12
 

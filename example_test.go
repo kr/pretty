@@ -2,7 +2,7 @@ package pretty_test
 
 import (
 	"fmt"
-	"github.com/mickael-menu/pretty"
+	"github.com/zk-org/pretty"
 )
 
 func Example() {
