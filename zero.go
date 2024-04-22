@@ -20,7 +20,7 @@ func nonzero(v reflect.Value) bool {
 		return v.String() != ""
 	case reflect.Struct:
 		for i := 0; i < v.NumField(); i++ {
-			if nonzero(getField(v, i)) {
+			if nonzero(v.Field(i)) {
 				return true
 			}
 		}

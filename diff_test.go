@@ -117,14 +117,14 @@ var diffs = []difftest{
 	{struct{ x N }{N{0}}, struct{ x N }{N{0}}, nil},
 	{struct{ x N }{N{0}}, struct{ x N }{N{1}}, []string{`x.N: 0 != 1`}},
 	{
-		struct{ x unsafe.Pointer }{unsafe.Pointer(uintptr(0))},
-		struct{ x unsafe.Pointer }{unsafe.Pointer(uintptr(0))},
+		struct{ x unsafe.Pointer }{unsafe.Pointer(nil)},
+		struct{ x unsafe.Pointer }{unsafe.Pointer(nil)},
 		nil,
 	},
 	{
-		struct{ x unsafe.Pointer }{unsafe.Pointer(uintptr(0))},
-		struct{ x unsafe.Pointer }{unsafe.Pointer(uintptr(1))},
-		[]string{`x: 0x0 != 0x1`},
+		struct{ x unsafe.Pointer }{unsafe.Pointer(nil)},
+		struct{ x unsafe.Pointer }{unsafe.Pointer(&i0)},
+		[]string{fmt.Sprintf("x: %p != %p", unsafe.Pointer(nil), unsafe.Pointer(&i0))},
 	},
 }
 

@@ -3,6 +3,7 @@ package pretty
 import (
 	"fmt"
 	"io"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -74,6 +75,10 @@ func NewStructWithPrivateFields(a string) StructWithPrivateFields {
 
 func (s StructWithPrivateFields) GoString() string {
 	return fmt.Sprintf("NewStructWithPrivateFields(%q)", s.A)
+}
+
+type StructWithInterfaceField struct {
+	V interface{}
 }
 
 var gosyntax = []test{
@@ -184,6 +189,11 @@ var gosyntax = []test{
 	{&PointerGoString{"pgs"}, `PGS pgs`},
 	{(*PointerGoString)(nil), "(*pretty.PointerGoString)(nil)"},
 	{&PanicGoString{"oops!"}, `(*pretty.PanicGoString)(PANIC=calling method "GoString": oops!)`},
+	{&StructWithInterfaceField{}, "&pretty.StructWithInterfaceField{}"},
+	{&StructWithInterfaceField{nil}, "&pretty.StructWithInterfaceField{}"},
+	{&StructWithInterfaceField{(*struct{})(nil)}, "&pretty.StructWithInterfaceField{\n    V:  (*struct {})(nil),\n}"},
+	{&StructWithInterfaceField{""}, "&pretty.StructWithInterfaceField{\n    V:  \"\",\n}"},
+	{&StructWithInterfaceField{struct{}{}}, "&pretty.StructWithInterfaceField{\n    V:  struct {}{},\n}"},
 }
 
 type ValueGoString struct {
@@ -215,6 +225,9 @@ func (g *PanicGoString) GoString() string {
 }
 
 func TestGoSyntax(t *testing.T) {
+	if runtime.Compiler == "tinygo" {
+		return
+	}
 	for _, tt := range gosyntax {
 		s := fmt.Sprintf("%# v", Formatter(tt.v))
 		if tt.s != s {
