@@ -130,19 +130,22 @@ var diffs = []difftest{
 
 func TestDiff(t *testing.T) {
 	for _, tt := range diffs {
-		got := Diff(tt.a, tt.b)
-		eq := len(got) == len(tt.exp)
-		if eq {
-			for i := range got {
-				eq = eq && got[i] == tt.exp[i]
-			}
+		expectDiffOutput(t, tt.a, tt.b, tt.exp)
+	}
+}
+
+func expectDiffOutput(t *testing.T, a, b interface{}, exp []string) {
+	got := Diff(a, b)
+	eq := len(got) == len(exp)
+	if eq {
+		for i := range got {
+			eq = eq && got[i] == exp[i]
 		}
-		if !eq {
-			t.Errorf("diffing % #v", tt.a)
-			t.Errorf("with    % #v", tt.b)
-			diffdiff(t, got, tt.exp)
-			continue
-		}
+	}
+	if !eq {
+		t.Errorf("diffing % #v", a)
+		t.Errorf("with    % #v", b)
+		diffdiff(t, got, exp)
 	}
 }
 
@@ -191,6 +194,47 @@ func TestFdiff(t *testing.T) {
 	if got := buf.String(); got != want {
 		t.Errorf("Fdiff(0, 1) = %q want %q", got, want)
 	}
+}
+
+func TestDiffCycle(t *testing.T) {
+	// Diff two cyclic structs
+	a := &I{i: 1, R: nil}
+	a.R = a
+	b := &I{i: 2, R: nil}
+	b.R = b
+	expectDiffOutput(t, a, b, []string{
+		`i: 1 != 2`,
+	})
+
+	// Diff two equal cyclic structs
+	b.i = 1
+	expectDiffOutput(t, a, b, []string{})
+
+	// Diff two structs with different cycles
+	b2 := &I{i: 1, R: b}
+	b.R = b2
+	expectDiffOutput(t, a, b, []string{`R: pretty.I{
+    i:  1,
+    R:  &pretty.I{(CYCLIC REFERENCE)},
+} (previously visited) != pretty.I{
+    i:  1,
+    R:  &pretty.I{
+        i:  1,
+        R:  &pretty.I{(CYCLIC REFERENCE)},
+    },
+}`})
+
+	// ... and the same in the other direction
+	expectDiffOutput(t, b, a, []string{`R: pretty.I{
+    i:  1,
+    R:  &pretty.I{
+        i:  1,
+        R:  &pretty.I{(CYCLIC REFERENCE)},
+    },
+} != pretty.I{
+    i:  1,
+    R:  &pretty.I{(CYCLIC REFERENCE)},
+} (previously visited)`})
 }
 
 func diffdiff(t *testing.T, got, exp []string) {

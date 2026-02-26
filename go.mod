@@ -1,3 +1,8 @@
-module "github.com/kr/pretty"
+module github.com/kr/pretty
 
-require "github.com/kr/text" v0.1.0
+go 1.12
+
+require (
+	github.com/kr/text v0.2.0
+	github.com/rogpeppe/go-internal v1.9.0
+)
