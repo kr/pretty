@@ -175,14 +175,17 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 		writeByte(p, '}')
 	case reflect.Struct:
 		t := v.Type()
+		var vis visit
+		var tracked bool
 		if v.CanAddr() {
 			addr := v.UnsafeAddr()
-			vis := visit{addr, t}
+			vis = visit{addr, t}
 			if vd, ok := p.visited[vis]; ok && vd < p.depth {
 				p.fmtString(t.String()+"{(CYCLIC REFERENCE)}", false)
 				break // don't print v again
 			}
 			p.visited[vis] = p.depth
+			tracked = true
 		}
 
 		if showType {
@@ -218,6 +221,11 @@ func (p *printer) printValue(v reflect.Value, showType, quote bool) {
 			}
 		}
 		writeByte(p, '}')
+		// Remove visit tracking after printing so that shared (non-cyclic)
+		// references from sibling fields are not falsely detected as cycles.
+		if tracked {
+			delete(p.visited, vis)
+		}
 	case reflect.Interface:
 		switch e := v.Elem(); {
 		case e.Kind() == reflect.Invalid:
